@@ -57,7 +57,7 @@ class BlockRender:
         }
 
     @classmethod
-    def convert_a_elem(cls, a_node):
+    def convert_a_elem(cls, a_node: Tag):
         return {
             "content": a_node.text,
             "link": {
@@ -67,7 +67,7 @@ class BlockRender:
 
     @classmethod
     @list_block_wrap
-    def convert_li_elem(cls, convert_result):
+    def convert_li_elem(cls, convert_result: str):
         return {
             "type": "text",
             "text": convert_result
@@ -75,13 +75,17 @@ class BlockRender:
 
     @classmethod
     @list_block_wrap
-    def convert_ul_elem(cls, convert_result):
+    def convert_ul_elem(cls, convert_result: str):
         return {
             "type": "bulleted_list_item",
             "bulleted_list_item": {
                 "text": convert_result
             }
         }
+
+
+class CodeRender:
+    ...
 
 
 if __name__ == '__main__':
