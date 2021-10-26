@@ -16,7 +16,7 @@ from bs4 import BeautifulSoup
 from notion_client import Client
 from pprint import pprint
 
-from block import Block
+from BlockRender import BlockRender
 
 
 if __name__ == '__main__':
@@ -25,7 +25,7 @@ if __name__ == '__main__':
 
     with open('/Users/zhangxinjian/Projects/PythonProject/mylearnlab/jupyter/myExercises/readme.md') as f:
         node = mistletoe.markdown(f.readlines())
-    p = Block()
+    p = BlockRender()
     soup = BeautifulSoup(node)
     ret = []
     for children in soup.contents:
