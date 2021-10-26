@@ -28,7 +28,7 @@ def list_block_wrap(func):
     return wrapper
 
 
-class Block:
+class BlockRender:
     @classmethod
     def convert_p_elem(cls, p_node: Tag):
         if p_node.parent.name == 'li':
@@ -87,7 +87,7 @@ class Block:
 if __name__ == '__main__':
     with open('/Users/zhangxinjian/Projects/PythonProject/mylearnlab/jupyter/myExercises/readme.md') as f:
         node = mistletoe.markdown(f.readlines())
-    p = Block()
+    p = BlockRender()
     soup = BeautifulSoup(node)
     ress = p.convert_ul_elem(soup)
     from pprint import pprint
