@@ -8,9 +8,12 @@
 @time: 2021/10/24 10:49 上午
 @desc:
 """
+import re
+
 import mistletoe
 from bs4 import BeautifulSoup, Tag
 from functools import wraps
+from loguru import logger
 
 
 def list_block_wrap(func):
@@ -18,7 +21,7 @@ def list_block_wrap(func):
     def wrapper(cls, node_arg):
         ret = []
         for children in node_arg.contents:
-            if children == '\n':
+            if children == '\n' or children.name is None:
                 continue
             convert_result = getattr(cls, f'convert_{children.name}_elem')(children)
             if convert_result:
@@ -83,17 +86,64 @@ class BlockRender:
             }
         }
 
+    @classmethod
+    def convert_pre_elem(cls, pre_node):
+        code_node = pre_node.code
+        return {
+            "type": "code",
+            "code": {
+                "text": [{
+                    "type": "text",
+                    "text": {
+                        "content": code_node.text
+                    }
+                }],
+                "language": code_node.attrs.get('class', ['language-text'])[0].replace('language-', '')
+            }
+        }
 
-class CodeRender:
-    ...
+    @classmethod
+    def convert_head_elem(cls, head_node):
+        level = head_node.h1[1:]
+        if level > 3:
+            logger.warning(f'head level can`t over than 3, now is {level}')
+            return
+        return {
+            "type": f"heading_{level}",
+            f"heading_{level}": {
+                "text": [{
+                    "type": "text",
+                    "text": {
+                        "content": head_node.text,
+                        "link": None
+                    }
+                }]
+            }
+        }
+
+    def main(self, soup: BeautifulSoup):
+        ret = []
+        for children in soup.contents:
+            if children == '\n' or children is None:
+                continue
+            if re.match(r'h\d', children.name):
+                convert_result = getattr(self, f'convert_head_elem')(children)
+            convert_result = getattr(self, f'convert_{children.name}_elem')(children)
+            if convert_result:
+                if isinstance(convert_result, list):
+                    ret += convert_result
+                else:
+                    ret.append(convert_result)
+        return ret
 
 
 if __name__ == '__main__':
     with open('/Users/zhangxinjian/Projects/PythonProject/mylearnlab/jupyter/myExercises/readme.md') as f:
         node = mistletoe.markdown(f.readlines())
     p = BlockRender()
-    soup = BeautifulSoup(node)
-    ress = p.convert_ul_elem(soup)
+    soup_ = BeautifulSoup(node)
+    ress = p.main(soup_)
+
     from pprint import pprint
 
     pprint(ress)
