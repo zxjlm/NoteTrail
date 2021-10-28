@@ -104,7 +104,7 @@ class BlockRender:
 
     @classmethod
     def convert_head_elem(cls, head_node):
-        level = head_node.h1[1:]
+        level = int(re.search(r'h(\d)', head_node.name).group(1))
         if level > 3:
             logger.warning(f'head level can`t over than 3, now is {level}')
             return
@@ -121,14 +121,33 @@ class BlockRender:
             }
         }
 
-    def main(self, soup: BeautifulSoup):
+    @classmethod
+    def convert_blockquote_elem(cls, quote_node):
+        return {
+            "type": "quote",
+            "quote": {
+                "text": [{
+                    "type": "text",
+                    "text": {
+                        "content": quote_node.text,
+                    },
+                }],
+            }
+        }
+
+    def main(self, md_path: str):
+        with open(md_path) as f:
+            node = mistletoe.markdown(f.readlines())
+        soup = BeautifulSoup(node)
+
         ret = []
         for children in soup.contents:
             if children == '\n' or children is None:
                 continue
             if re.match(r'h\d', children.name):
-                convert_result = getattr(self, f'convert_head_elem')(children)
-            convert_result = getattr(self, f'convert_{children.name}_elem')(children)
+                convert_result = self.convert_head_elem(children)
+            else:
+                convert_result = getattr(self, f'convert_{children.name}_elem')(children)
             if convert_result:
                 if isinstance(convert_result, list):
                     ret += convert_result
@@ -138,11 +157,9 @@ class BlockRender:
 
 
 if __name__ == '__main__':
-    with open('/Users/zhangxinjian/Projects/PythonProject/mylearnlab/jupyter/myExercises/readme.md') as f:
-        node = mistletoe.markdown(f.readlines())
+    md_path = '/Users/zhangxinjian/Projects/PythonProject/mylearnlab/jupyter/myExercises/readme.md'
     p = BlockRender()
-    soup_ = BeautifulSoup(node)
-    ress = p.main(soup_)
+    ress = p.main(md_path)
 
     from pprint import pprint
 
