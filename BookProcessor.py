@@ -10,25 +10,30 @@
 """
 import os
 
+import httpx
+
+from BlockRender import BlockRender
 from CharacterScanner import CharacterScanner
 from notion_client import Client
 
 
 class BookProcessor:
     def __init__(self, database_id=None, page_id=None, client=None):
-        if database_id or page_id is None:
+        if (database_id or page_id) is None:
             raise Exception('database or page must have one')
         self.database_id = database_id
         self.page_id = page_id
         self.notion = Client(auth=os.environ["NOTION_TOKEN"], client=client)
+        self.block_render = BlockRender()
 
-    def generate_character_block(self, child):
-        name = os.path.basename(child)[:-3]
+    def generate_character_block(self, child, raw_title=None):
+        if not raw_title:
+            raw_title = os.path.basename(child)[:-3]
         return {
             'title': [
                 {
                     'type': 'text',
-                    'text': {'content': name},
+                    'text': {'content': raw_title},
                 }
             ]
         }
@@ -40,14 +45,33 @@ class BookProcessor:
         :param dir_path:
         :return:
         """
-        for blocks, children in dir_path.items():
-            if children:
-                for child in children:
-                    self.notion.pages.create(parent={"page_id": root_page_id},
-                                             properties=self.generate_character_block(child))
+        files_mapper = {os.path.basename(foo): foo for foo in dir_path['blocks']}
+        if 'README.md' in files_mapper.keys():
+            # create a readme page
+            title = files_mapper['README.md'][:-10]
+            response = self.notion.pages.create(parent={"page_id": root_page_id},
+                                                properties=self.generate_character_block(title),
+                                                children=self.block_render.main(files_mapper['README.md']))
+            dir_path['blocks'].remove(files_mapper['README.md'])
+        elif 'readme.md' in files_mapper.keys():
+            title = files_mapper['readme.md'][:-10]
+            response = self.notion.pages.create(parent={"page_id": root_page_id},
+                                                properties=self.generate_character_block(title),
+                                                children=self.block_render.main(files_mapper['readme.md']))
+            dir_path['blocks'].remove(files_mapper['readme.md'])
+        else:
+            # create a blank page
+            response = self.notion.pages.create(parent={"page_id": root_page_id},
+                                                properties=self.generate_character_block('', 'unknow'))
+        for block in dir_path['blocks']:
+            self.file_processor(block, response['id'])
+        for children in dir_path['children']:
+            self.dir_processor(children, response['id'])
 
-    def file_processor(self, file_path):
-        ...
+    def file_processor(self, file_path, page_id):
+        response = self.notion.pages.create(parent={"page_id": page_id},
+                                            properties=self.generate_character_block(file_path))
+        return response
 
     def main(self, path, book_name, book_url=None):
         path_dict = CharacterScanner().scanner(path)
@@ -64,15 +88,21 @@ class BookProcessor:
                                    ]
                                    },
                           }
-            response = self.notion.pages.create({"parent": self.database_id, 'properties': properties})
-            root_page_id = response.id
+            response = self.notion.pages.create(parent={"database_id": self.database_id}, properties=properties)
+            root_page_id = response['id']
         else:
-            ...
             # response = self.notion.blocks.children.append(parent=self.page_id)
+            print('page as root, todo')
+            return
 
-        for blocks, children in path_dict.items():
-            for block in blocks:
-                self.file_processor(block, root_page_id)
+        for block in path_dict['blocks']:
+            self.file_processor(block, root_page_id)
 
-            for child in children:
-                self.dir_processor(child, root_page_id)
+        for child in path_dict['children']:
+            self.dir_processor(child, root_page_id)
+
+
+if __name__ == '__main__':
+    client = httpx.Client(proxies={'http://': 'http://127.0.0.1:7890', 'https://': 'http://127.0.0.1:7890'})
+    p = BookProcessor(database_id='d0e931a36b43405996d118cf71957f6d', client=client)
+    p.main('/Users/zhangxinjian/Projects/w3-goto-wold', 'w3-goto-wold')
