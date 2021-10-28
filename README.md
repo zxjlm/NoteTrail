@@ -16,5 +16,7 @@ Developing...
   - [x] ul 
   - [x] headers(h1\h2\h3...)
   - [ ] rich-text
+  - [ ] picture
+- [ ] add logger
 - [ ] add sqlite to store notion-db __ ebook map relation, for update
 - [ ] refactor block class
