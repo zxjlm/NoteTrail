@@ -7,3 +7,14 @@ import github ebooks (markdown files) to notions.
 Developing...
 
 开发中...
+
+# TODO
+
+- [ ] blocks
+  - [x] code
+  - [x] p
+  - [x] ul 
+  - [x] headers(h1\h2\h3...)
+  - [ ] rich-text
+- [ ] add sqlite to store notion-db __ ebook map relation, for update
+- [ ] refactor block class
