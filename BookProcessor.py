@@ -26,14 +26,13 @@ class BookProcessor:
         self.notion = Client(auth=os.environ["NOTION_TOKEN"], client=client)
         self.block_render = BlockRender()
 
-    def generate_character_block(self, child, raw_title=None):
-        if not raw_title:
-            raw_title = os.path.basename(child)[:-3]
+    def generate_character_block(self, raw_title=None):
+        title = os.path.basename(raw_title)
         return {
             'title': [
                 {
                     'type': 'text',
-                    'text': {'content': raw_title},
+                    'text': {'content': title},
                 }
             ]
         }
@@ -46,23 +45,18 @@ class BookProcessor:
         :return:
         """
         files_mapper = {os.path.basename(foo): foo for foo in dir_path['blocks']}
-        if 'README.md' in files_mapper.keys():
-            # create a readme page
-            title = files_mapper['README.md'][:-10]
+        md_file = files_mapper.get('README.md') or files_mapper.get('readme.md')
+        if md_file:
+            # if readme file exist, create a page base on readme
+            title = md_file[:-10]
             response = self.notion.pages.create(parent={"page_id": root_page_id},
                                                 properties=self.generate_character_block(title),
-                                                children=self.block_render.main(files_mapper['README.md']))
-            dir_path['blocks'].remove(files_mapper['README.md'])
-        elif 'readme.md' in files_mapper.keys():
-            title = files_mapper['readme.md'][:-10]
-            response = self.notion.pages.create(parent={"page_id": root_page_id},
-                                                properties=self.generate_character_block(title),
-                                                children=self.block_render.main(files_mapper['readme.md']))
-            dir_path['blocks'].remove(files_mapper['readme.md'])
+                                                children=self.block_render.main(md_file))
+            dir_path['blocks'].remove(md_file)
         else:
             # create a blank page
             response = self.notion.pages.create(parent={"page_id": root_page_id},
-                                                properties=self.generate_character_block('', 'unknow'))
+                                                properties=self.generate_character_block(dir_path['path']))
         for block in dir_path['blocks']:
             self.file_processor(block, response['id'])
         for children in dir_path['children']:
