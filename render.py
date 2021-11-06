@@ -11,7 +11,7 @@
 import re
 
 import mistletoe
-from bs4 import BeautifulSoup, Tag
+from bs4 import BeautifulSoup, Tag, NavigableString
 from functools import wraps
 from loguru import logger
 
@@ -32,25 +32,45 @@ def list_block_wrap(func):
 
 
 class BlockRender:
+    """
+    将md内容转为notion api内容
+    """
+
     @classmethod
     def convert_p_elem(cls, p_node: Tag):
+        """
+        转换p标签
+
+        p标签的转换比较复杂, 目前看来这是少数的可能存在子节点的标签.
+        :param p_node:
+        :return:
+        """
         if p_node.parent.name == 'li':
             return {
                 "content": p_node.text,
                 "link": None
             }
-        return {
-            "type": "paragraph",
-            "paragraph": {
-                "text": [{
-                    "type": "text",
-                    "text": {
-                        "content": p_node.text,
-                        "link": None
-                    }
-                }]
-            },
-        }
+        # contents_type = [content for content in p_node.contents if not isinstance(content, NavigableString)]
+        else:
+            return {
+                "type": "paragraph",
+                "paragraph": {
+                    "text": cls.recursion_p_node(p_node)
+                },
+            }
+
+    @classmethod
+    def recursion_p_node(cls, p_node: Tag):
+        ret = []
+        for content in p_node.contents:
+            ret.append({
+                "type": "text",
+                "text": {
+                    "content": content.text,
+                    "link": content.attrs.get('href') if content.name == 'a' else None
+                }
+            })
+        return ret
 
     @classmethod
     def convert_hr_elem(cls, hr_node):
@@ -87,8 +107,21 @@ class BlockRender:
         }
 
     @classmethod
+    @list_block_wrap
+    def convert_ol_elem(cls, convert_result: str):
+        return {
+            "type": "numbered_list_item",
+            "bulleted_list_item": {
+                "text": convert_result
+            }
+        }
+
+    @classmethod
     def convert_pre_elem(cls, pre_node):
         code_node = pre_node.code
+        language = code_node.attrs.get('class', ['language-text'])[0].replace('language-', '')
+        if language == 'text':
+            language = 'plain text'
         return {
             "type": "code",
             "code": {
@@ -98,7 +131,7 @@ class BlockRender:
                         "content": code_node.text
                     }
                 }],
-                "language": code_node.attrs.get('class', ['language-text'])[0].replace('language-', '')
+                "language": language
             }
         }
 
@@ -135,7 +168,16 @@ class BlockRender:
             }
         }
 
-    def main(self, md_path: str):
+
+class MarkdownRender:
+    """
+    渲染一篇markdown文档
+    """
+
+    def __init__(self):
+        self.block_render = BlockRender()
+
+    def process(self, md_path: str):
         with open(md_path) as f:
             node = mistletoe.markdown(f.readlines())
         soup = BeautifulSoup(node)
@@ -145,9 +187,9 @@ class BlockRender:
             if children == '\n' or children is None:
                 continue
             if re.match(r'h\d', children.name):
-                convert_result = self.convert_head_elem(children)
+                convert_result = self.block_render.convert_head_elem(children)
             else:
-                convert_result = getattr(self, f'convert_{children.name}_elem')(children)
+                convert_result = getattr(self.block_render, f'convert_{children.name}_elem')(children)
             if convert_result:
                 if isinstance(convert_result, list):
                     ret += convert_result
@@ -157,9 +199,9 @@ class BlockRender:
 
 
 if __name__ == '__main__':
-    md_path = '/Users/zhangxinjian/Projects/PythonProject/mylearnlab/jupyter/myExercises/readme.md'
-    p = BlockRender()
-    ress = p.main(md_path)
+    path = '/Users/zhangxinjian/Projects/d2l/README.md'
+    p = MarkdownRender()
+    ress = p.process(path)
 
     from pprint import pprint
 
