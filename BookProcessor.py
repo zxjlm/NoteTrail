@@ -12,9 +12,10 @@ import os
 
 import httpx
 
-from BlockRender import BlockRender
+from render import MarkdownRender
 from CharacterScanner import CharacterScanner
 from notion_client import Client
+from loguru import logger
 
 
 class BookProcessor:
@@ -24,7 +25,7 @@ class BookProcessor:
         self.database_id = database_id
         self.page_id = page_id
         self.notion = Client(auth=os.environ["NOTION_TOKEN"], client=client)
-        self.block_render = BlockRender()
+        self.md_render = MarkdownRender()
 
     def generate_character_block(self, raw_title=None):
         title = os.path.basename(raw_title)
@@ -44,28 +45,37 @@ class BookProcessor:
         :param dir_path:
         :return:
         """
+        logger.info(f'================= now start to parser dir: {dir_path} ===================')
         files_mapper = {os.path.basename(foo): foo for foo in dir_path['blocks']}
         md_file = files_mapper.get('README.md') or files_mapper.get('readme.md')
         if md_file:
             # if readme file exist, create a page base on readme
-            title = md_file[:-10]
-            response = self.notion.pages.create(parent={"page_id": root_page_id},
-                                                properties=self.generate_character_block(title),
-                                                children=self.block_render.main(md_file))
+            # title = md_file[:-10]
+            # response = self.notion.pages.create(parent={"page_id": root_page_id},
+            #                                     properties=self.generate_character_block(title),
+            #                                     children=self.md_render.process(md_file))
+            self.notion.blocks.children.append(root_page_id, children=self.md_render.process(md_file))
             dir_path['blocks'].remove(md_file)
+            generate_page_id = root_page_id
         else:
             # create a blank page
             response = self.notion.pages.create(parent={"page_id": root_page_id},
                                                 properties=self.generate_character_block(dir_path['path']))
+            generate_page_id = response['id']
         for block in dir_path['blocks']:
-            self.file_processor(block, response['id'])
+            self.file_processor(block, generate_page_id)
         for children in dir_path['children']:
-            self.dir_processor(children, response['id'])
+            self.dir_processor(children, generate_page_id)
 
     def file_processor(self, file_path, page_id):
-        response = self.notion.pages.create(parent={"page_id": page_id},
-                                            properties=self.generate_character_block(file_path))
-        return response
+        logger.info(f'================= now start to parser file: {file_path} ===================')
+        response = self.notion.pages.create(
+            parent={"page_id": page_id},
+            properties=self.generate_character_block(file_path),
+            # children=self.md_render.process(file_path)
+        )
+        response_ = self.notion.blocks.children.append(response['id'], children=self.md_render.process(file_path))
+        return response_
 
     def main(self, path, book_name, book_url=None):
         path_dict = CharacterScanner().scanner(path)
@@ -99,4 +109,4 @@ class BookProcessor:
 if __name__ == '__main__':
     client = httpx.Client(proxies={'http://': 'http://127.0.0.1:7890', 'https://': 'http://127.0.0.1:7890'})
     p = BookProcessor(database_id='d0e931a36b43405996d118cf71957f6d', client=client)
-    p.main('/Users/zhangxinjian/Projects/w3-goto-wold', 'w3-goto-wold')
+    p.main('/Users/zhangxinjian/Projects/d2l', 'd2l')
