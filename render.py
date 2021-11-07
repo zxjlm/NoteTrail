@@ -11,7 +11,7 @@
 import re
 
 import mistletoe
-from bs4 import BeautifulSoup, Tag, NavigableString
+from bs4 import BeautifulSoup, Tag
 from functools import wraps
 from loguru import logger
 
@@ -19,13 +19,14 @@ from loguru import logger
 def list_block_wrap(func):
     @wraps(func)
     def wrapper(cls, node_arg):
-        ret = []
+        ret, cv_list = [], []
         for children in node_arg.contents:
             if children == '\n' or children.name is None:
                 continue
             convert_result = getattr(cls, f'convert_{children.name}_elem')(children)
-            if convert_result:
-                ret.append(func(cls, convert_result))
+            cv_list.append(convert_result)
+        if cv_list:
+            ret.append(func(cls, cv_list))
         return ret
 
     return wrapper
@@ -67,7 +68,10 @@ class BlockRender:
                 "type": "text",
                 "text": {
                     "content": content.text,
-                    "link": content.attrs.get('href') if content.name == 'a' else None
+                    "link": {
+                        "type": "url",
+                        "url": content.attrs.get('href')
+                    } if content.name == 'a' else None
                 }
             })
         return ret
@@ -89,11 +93,13 @@ class BlockRender:
         }
 
     @classmethod
-    @list_block_wrap
-    def convert_li_elem(cls, convert_result: str):
+    def convert_li_elem(cls, li_node: Tag):
         return {
             "type": "text",
-            "text": convert_result
+            "text": {
+                "content": li_node.text,
+                "link": None
+            }
         }
 
     @classmethod
@@ -111,17 +117,100 @@ class BlockRender:
     def convert_ol_elem(cls, convert_result: str):
         return {
             "type": "numbered_list_item",
-            "bulleted_list_item": {
+            "numbered_list_item": {
                 "text": convert_result
             }
         }
 
     @classmethod
     def convert_pre_elem(cls, pre_node):
+        language_list = [
+            'abap',
+            'arduino',
+            'bash',
+            'basic',
+            'c',
+            'clojure',
+            'coffeescript',
+            'c++',
+            'c#',
+            'css',
+            'dart',
+            'diff',
+            'docker',
+            'elixir',
+            'elm',
+            'erlang',
+            'flow',
+            'fortran',
+            'f#',
+            'gherkin',
+            'glsl',
+            'go',
+            'graphql',
+            'groovy',
+            'haskell',
+            'html',
+            'java',
+            'javascript',
+            'json',
+            'julia',
+            'kotlin',
+            'latex',
+            'less',
+            'lisp',
+            'livescript',
+            'lua',
+            'makefile',
+            'markdown',
+            'markup',
+            'matlab',
+            'mermaid',
+            'nix',
+            'objective-c',
+            'ocaml',
+            'pascal',
+            'perl',
+            'php',
+            'plain text',
+            'powershell',
+            'prolog',
+            'protobuf',
+            'python',
+            'r',
+            'reason',
+            'ruby',
+            'rust',
+            'sass',
+            'scala',
+            'scheme',
+            'scss',
+            'shell',
+            'sql',
+            'swift',
+            'typescript',
+            'vb.net',
+            'verilog',
+            'vhdl',
+            'visual basic',
+            'webassembly',
+            'xml',
+            'yaml'
+        ]
         code_node = pre_node.code
         language = code_node.attrs.get('class', ['language-text'])[0].replace('language-', '')
         if language == 'text':
             language = 'plain text'
+
+        # 判断代码块语言是否支持
+        if language not in language_list:
+            for lan in language_list:
+                if lan in language:
+                    language = lan
+                    break
+            else:
+                raise Exception('language can`t support.')
+
         return {
             "type": "code",
             "code": {
