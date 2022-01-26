@@ -14,14 +14,18 @@ import os
 import mistletoe
 from bs4 import BeautifulSoup
 from notion_client import Client
-from pprint import pprint
 
 from BlockRender import BlockRender
 
 
 if __name__ == '__main__':
 
-    notion = Client(auth=os.environ["NOTION_TOKEN"])
+    auth_token = os.environ.get("NOTION_TOKEN")
+    if not auth_token:
+        print("Please set NOTION_TOKEN environment variable")
+        exit(1)
+
+    notion = Client(auth=auth_token)
 
     with open('/Users/zhangxinjian/Projects/PythonProject/mylearnlab/jupyter/myExercises/readme.md') as f:
         node = mistletoe.markdown(f.readlines())
