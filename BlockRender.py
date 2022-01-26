@@ -11,7 +11,7 @@
 import re
 
 import mistletoe
-from bs4 import BeautifulSoup, Tag
+from bs4 import BeautifulSoup
 from functools import wraps
 from loguru import logger
 
@@ -33,7 +33,7 @@ def list_block_wrap(func):
 
 class BlockRender:
     @classmethod
-    def convert_p_elem(cls, p_node: Tag):
+    def convert_p_elem(cls, p_node):
         if p_node.parent.name == 'li':
             return {
                 "content": p_node.text,
@@ -53,14 +53,14 @@ class BlockRender:
         }
 
     @classmethod
-    def convert_hr_elem(cls, hr_node):
+    def convert_hr_elem(cls):
         return {
             "type": "divider",
             "divider": {}
         }
 
     @classmethod
-    def convert_a_elem(cls, a_node: Tag):
+    def convert_a_elem(cls, a_node):
         return {
             "content": a_node.text,
             "link": {
@@ -157,9 +157,9 @@ class BlockRender:
 
 
 if __name__ == '__main__':
-    md_path = '/Users/zhangxinjian/Projects/PythonProject/mylearnlab/jupyter/myExercises/readme.md'
+    md_path_ = '/Users/zhangxinjian/Projects/PythonProject/mylearnlab/jupyter/myExercises/readme.md'
     p = BlockRender()
-    ress = p.main(md_path)
+    ress = p.main(md_path_)
 
     from pprint import pprint
 
