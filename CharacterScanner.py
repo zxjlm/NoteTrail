@@ -11,6 +11,8 @@
 import glob
 import os
 
+from utils import Bcolors
+
 
 class CharacterScanner:
     """
@@ -21,13 +23,13 @@ class CharacterScanner:
     目前只支持 markdown
     """
 
-    def __init__(self):
-        ...
+    def __init__(self, basic_path):
+        self.basic_path = basic_path
 
     def recursion_scanner(self, current_path) -> dict:
         """
 
-        :param current_path:
+        param current_path:
         :return:
             {
                 "blocks": [],
@@ -55,13 +57,31 @@ class CharacterScanner:
 
         return md_files
 
-    def scanner(self, path: str) -> dict:
+    @staticmethod
+    def plain_recursion_scanner(current_path, depth=1):
         """
-        指定扫描任务的根目录
-        :param path:
+
+        :param depth:
+        :param current_path:
         :return:
         """
-        return self.recursion_scanner(path)
+        path_list = glob.glob(f'{current_path}/*')
+
+        for path_ in path_list:
+            if os.path.isdir(path_):
+                CharacterScanner.plain_recursion_scanner(path_, depth + 1)
+                print(Bcolors.OKBLUE + '-' * depth, os.path.basename(path_) + Bcolors.ENDC)
+            elif path_.endswith('.md'):
+                print(Bcolors.OKGREEN + '-' * depth, os.path.basename(path_) + Bcolors.ENDC)
+            else:
+                print(Bcolors.WARNING + '-' * depth, os.path.basename(path_) + Bcolors.ENDC)
+
+    def scanner(self) -> dict:
+        """
+        指定扫描任务的根目录
+        :return:
+        """
+        return self.recursion_scanner(self.basic_path)
 
     @staticmethod
     def check_path(path_dict):
@@ -71,5 +91,7 @@ class CharacterScanner:
 
 
 if __name__ == '__main__':
-    p = CharacterScanner()
-    print(p.scanner('/Users/zhangxinjian/Projects/w3-goto-wold'))
+    import pprint
+    p = CharacterScanner('/home/harumonia/projects/docs/w3-goto-world')
+    # pprint.pprint(p.scanner())
+    p.plain_recursion_scanner('/home/harumonia/projects/docs/w3-goto-world')
