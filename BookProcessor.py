@@ -16,6 +16,8 @@ from BlockRender import BlockRender
 from CharacterScanner import CharacterScanner
 from notion_client import Client
 
+from NotionClient import MyNotionClient
+
 
 class BookProcessor:
     def __init__(self, database_id=None, page_id=None, client=None):
@@ -23,7 +25,7 @@ class BookProcessor:
             raise Exception('database or page must have one')
         self.database_id = database_id
         self.page_id = page_id
-        self.notion = Client(auth=os.environ["NOTION_TOKEN"], client=client)
+        self.notion = MyNotionClient(client)
         self.block_render = BlockRender()
 
     def generate_character_block(self, child, raw_title=None):
@@ -50,15 +52,15 @@ class BookProcessor:
             # create a readme page
             if file_path.lower() == 'readme.md':
                 title = files_mapper[file_path][:-10]
-                response = self.notion.pages.create(parent={"page_id": root_page_id},
-                                                    properties=self.generate_character_block(title),
-                                                    children=self.block_render.main(files_mapper[file_path]))
+                response = self.notion.create_page(parent={"page_id": root_page_id},
+                                                   properties=self.generate_character_block(title),
+                                                   children=self.block_render.main(files_mapper[file_path]))
                 dir_path['blocks'].remove(files_mapper[file_path])
                 break
         else:
             # create a blank page
-            response = self.notion.pages.create(parent={"page_id": root_page_id},
-                                                properties=self.generate_character_block(dir_path['path']))
+            response = self.notion.create_page(parent={"page_id": root_page_id},
+                                               properties=self.generate_character_block(dir_path['path']))
 
         for block in dir_path['blocks']:
             self.file_processor(block, response['id'])
@@ -66,9 +68,9 @@ class BookProcessor:
             self.dir_processor(children, response['id'])
 
     def file_processor(self, file_path, page_id):
-        response = self.notion.pages.create(parent={"page_id": page_id},
-                                            properties=self.generate_character_block(file_path),
-                                            children=self.block_render.main(file_path))
+        response = self.notion.create_page(parent={"page_id": page_id},
+                                           properties=self.generate_character_block(file_path),
+                                           children=self.block_render.main(file_path))
         return response
 
     def main(self, path, book_name, book_url=None):
@@ -86,7 +88,7 @@ class BookProcessor:
                                    ]
                                    },
                           }
-            response = self.notion.pages.create(parent={"database_id": self.database_id}, properties=properties)
+            response = self.notion.create_page(parent={"database_id": self.database_id}, properties=properties)
             root_page_id = response['id']
         else:
             # response = self.notion.blocks.children.append(parent=self.page_id)
@@ -103,4 +105,4 @@ class BookProcessor:
 if __name__ == '__main__':
     client_ = httpx.Client(proxies={'http://': 'http://127.0.0.1:7890', 'https://': 'http://127.0.0.1:7890'})
     p = BookProcessor(database_id='d0e931a36b43405996d118cf71957f6d', client=client_)
-    p.main('/home/harumonia/projects/docs/w3-goto-world-t', 'w3-goto-wold')
+    p.main('/home/harumonia/projects/docs/d2l-zh-t', 'd2l-zh-t')
