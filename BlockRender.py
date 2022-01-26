@@ -140,6 +140,21 @@ class BlockRender:
             }
         }
 
+    @classmethod
+    def convert_code_elem(cls, code_node):
+        return {
+            "type": "code",
+            "code": {
+                "text": [{
+                    "type": "text",
+                    "text": {
+                        "content": code_node.text
+                    }
+                }],
+                "language": "javascript"
+            }
+        }
+
     def content_iter(self, basic_node) -> list:
         """
 
