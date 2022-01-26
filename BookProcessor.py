@@ -47,6 +47,7 @@ class BookProcessor:
         """
         files_mapper = {os.path.basename(foo): foo for foo in dir_path['blocks']}
         for file_path in files_mapper:
+            # create a readme page
             if file_path.lower() == 'readme.md':
                 title = files_mapper[file_path][:-10]
                 response = self.notion.pages.create(parent={"page_id": root_page_id},
@@ -54,23 +55,10 @@ class BookProcessor:
                                                     children=self.block_render.main(files_mapper[file_path]))
                 dir_path['blocks'].remove(files_mapper[file_path])
                 break
-        # if 'README.md' in files_mapper.keys():
-        #     # create a readme page
-        #     title = files_mapper['README.md'][:-10]
-        #     response = self.notion.pages.create(parent={"page_id": root_page_id},
-        #                                         properties=self.generate_character_block(title),
-        #                                         children=self.block_render.main(files_mapper['README.md']))
-        #     dir_path['blocks'].remove(files_mapper['README.md'])
-        # elif 'readme.md' in files_mapper.keys():
-        #     title = files_mapper['readme.md'][:-10]
-        #     response = self.notion.pages.create(parent={"page_id": root_page_id},
-        #                                         properties=self.generate_character_block(title),
-        #                                         children=self.block_render.main(files_mapper['readme.md']))
-        #     dir_path['blocks'].remove(files_mapper['readme.md'])
         else:
             # create a blank page
             response = self.notion.pages.create(parent={"page_id": root_page_id},
-                                                properties=self.generate_character_block('', 'unknown'))
+                                                properties=self.generate_character_block(dir_path['path']))
 
         for block in dir_path['blocks']:
             self.file_processor(block, response['id'])
@@ -79,7 +67,8 @@ class BookProcessor:
 
     def file_processor(self, file_path, page_id):
         response = self.notion.pages.create(parent={"page_id": page_id},
-                                            properties=self.generate_character_block(file_path))
+                                            properties=self.generate_character_block(file_path),
+                                            children=self.block_render.main(file_path))
         return response
 
     def main(self, path, book_name, book_url=None):

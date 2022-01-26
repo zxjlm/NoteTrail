@@ -50,7 +50,7 @@ class CharacterScanner:
                 scan_res = self.recursion_scanner(path_)
                 if scan_res['children'] or scan_res['blocks']:
                     md_files['children'].append(scan_res)
-            elif path_.endswith('.md'):
+            elif path_.lower().endswith('.md'):
                 md_files['blocks'].append(path_)
             else:
                 continue

@@ -148,7 +148,9 @@ class BlockRender:
         """
         ret = []
         for children in basic_node.contents:
-            if children == '\n' or children is None or children.name is None:
+            if children == '\n' or children is None:
+                continue
+            if children.name is None:
                 logger.warning(f'skip empty node, {children}')
                 continue
             if re.match(r'h\d', children.name):
