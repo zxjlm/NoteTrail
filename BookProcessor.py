@@ -28,7 +28,7 @@ class BookProcessor:
 
     def generate_character_block(self, child, raw_title=None):
         if not raw_title:
-            raw_title = os.path.basename(child)[:-3]
+            raw_title = os.path.basename(child).replace('.md', '')
         return {
             'title': [
                 {
@@ -46,23 +46,32 @@ class BookProcessor:
         :return:
         """
         files_mapper = {os.path.basename(foo): foo for foo in dir_path['blocks']}
-        if 'README.md' in files_mapper.keys():
-            # create a readme page
-            title = files_mapper['README.md'][:-10]
-            response = self.notion.pages.create(parent={"page_id": root_page_id},
-                                                properties=self.generate_character_block(title),
-                                                children=self.block_render.main(files_mapper['README.md']))
-            dir_path['blocks'].remove(files_mapper['README.md'])
-        elif 'readme.md' in files_mapper.keys():
-            title = files_mapper['readme.md'][:-10]
-            response = self.notion.pages.create(parent={"page_id": root_page_id},
-                                                properties=self.generate_character_block(title),
-                                                children=self.block_render.main(files_mapper['readme.md']))
-            dir_path['blocks'].remove(files_mapper['readme.md'])
+        for file_path in files_mapper:
+            if file_path.lower() == 'readme.md':
+                title = files_mapper[file_path][:-10]
+                response = self.notion.pages.create(parent={"page_id": root_page_id},
+                                                    properties=self.generate_character_block(title),
+                                                    children=self.block_render.main(files_mapper[file_path]))
+                dir_path['blocks'].remove(files_mapper[file_path])
+                break
+        # if 'README.md' in files_mapper.keys():
+        #     # create a readme page
+        #     title = files_mapper['README.md'][:-10]
+        #     response = self.notion.pages.create(parent={"page_id": root_page_id},
+        #                                         properties=self.generate_character_block(title),
+        #                                         children=self.block_render.main(files_mapper['README.md']))
+        #     dir_path['blocks'].remove(files_mapper['README.md'])
+        # elif 'readme.md' in files_mapper.keys():
+        #     title = files_mapper['readme.md'][:-10]
+        #     response = self.notion.pages.create(parent={"page_id": root_page_id},
+        #                                         properties=self.generate_character_block(title),
+        #                                         children=self.block_render.main(files_mapper['readme.md']))
+        #     dir_path['blocks'].remove(files_mapper['readme.md'])
         else:
             # create a blank page
             response = self.notion.pages.create(parent={"page_id": root_page_id},
-                                                properties=self.generate_character_block('', 'unknow'))
+                                                properties=self.generate_character_block('', 'unknown'))
+
         for block in dir_path['blocks']:
             self.file_processor(block, response['id'])
         for children in dir_path['children']:
@@ -74,7 +83,7 @@ class BookProcessor:
         return response
 
     def main(self, path, book_name, book_url=None):
-        path_dict = CharacterScanner().scanner(path)
+        path_dict = CharacterScanner(path).scanner()
         CharacterScanner.check_path(path_dict)
 
         if self.database_id:
@@ -103,6 +112,6 @@ class BookProcessor:
 
 
 if __name__ == '__main__':
-    client = httpx.Client(proxies={'http://': 'http://127.0.0.1:7890', 'https://': 'http://127.0.0.1:7890'})
-    p = BookProcessor(database_id='d0e931a36b43405996d118cf71957f6d', client=client)
-    p.main('/Users/zhangxinjian/Projects/w3-goto-wold', 'w3-goto-wold')
+    client_ = httpx.Client(proxies={'http://': 'http://127.0.0.1:7890', 'https://': 'http://127.0.0.1:7890'})
+    p = BookProcessor(database_id='d0e931a36b43405996d118cf71957f6d', client=client_)
+    p.main('/home/harumonia/projects/docs/w3-goto-world-t', 'w3-goto-wold')

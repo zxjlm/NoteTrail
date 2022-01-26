@@ -23,7 +23,12 @@ def list_block_wrap(func):
         for children in node_arg.contents:
             if children == '\n' or children.name is None:
                 continue
+            elif children.name == 'i':
+                ret += wrapper(cls, children)
+                continue
+
             convert_result = getattr(cls, f'convert_{children.name}_elem')(children)
+
             if convert_result:
                 ret.append(func(cls, convert_result))
         return ret
@@ -53,7 +58,7 @@ class BlockRender:
         }
 
     @classmethod
-    def convert_hr_elem(cls):
+    def convert_hr_elem(cls, _):
         return {
             "type": "divider",
             "divider": {}
@@ -135,24 +140,36 @@ class BlockRender:
             }
         }
 
-    def main(self, md_path: str):
-        with open(md_path) as f:
-            node = mistletoe.markdown(f.readlines())
-        soup = BeautifulSoup(node)
+    def content_iter(self, basic_node) -> list:
+        """
 
+        :param basic_node:
+        :return:
+        """
         ret = []
-        for children in soup.contents:
-            if children == '\n' or children is None:
+        for children in basic_node.contents:
+            if children == '\n' or children is None or children.name is None:
+                logger.warning(f'skip empty node, {children}')
                 continue
             if re.match(r'h\d', children.name):
                 convert_result = self.convert_head_elem(children)
             else:
                 convert_result = getattr(self, f'convert_{children.name}_elem')(children)
+
             if convert_result:
                 if isinstance(convert_result, list):
                     ret += convert_result
                 else:
                     ret.append(convert_result)
+        return ret
+
+    def main(self, md_path: str):
+        with open(md_path) as f:
+            node = mistletoe.markdown(f.readlines())
+        soup = BeautifulSoup(node)
+
+        ret = self.content_iter(soup)
+
         return ret
 
 
