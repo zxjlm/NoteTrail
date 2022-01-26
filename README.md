@@ -21,3 +21,4 @@ Developing...
 - [ ] add logger
 - [ ] add sqlite to store notion-db __ ebook map relation, for update
 - [ ] refactor block class
+- [ ] pic management (oss)
