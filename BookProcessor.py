@@ -11,12 +11,14 @@
 import os
 
 import httpx
+import mistletoe
 
 from BlockRender import BlockRender
 from CharacterScanner import CharacterScanner
 from notion_client import Client
 
 from NotionClient import MyNotionClient
+from NotionRender import NotionRender
 
 
 class BookProcessor:
@@ -54,7 +56,7 @@ class BookProcessor:
                 title = files_mapper[file_path][:-10]
                 response = self.notion.create_page(parent={"page_id": root_page_id},
                                                    properties=self.generate_character_block(title),
-                                                   children=self.block_render.main(files_mapper[file_path]))
+                                                   children=self.render_file(files_mapper[file_path]))
                 dir_path['blocks'].remove(files_mapper[file_path])
                 break
         else:
@@ -70,7 +72,7 @@ class BookProcessor:
     def file_processor(self, file_path, page_id):
         response = self.notion.create_page(parent={"page_id": page_id},
                                            properties=self.generate_character_block(file_path),
-                                           children=self.block_render.main(file_path))
+                                           children=self.render_file(file_path))
         return response
 
     def main(self, path, book_name, book_url=None):
@@ -101,8 +103,13 @@ class BookProcessor:
         for child in path_dict['children']:
             self.dir_processor(child, root_page_id)
 
+    def render_file(self, md_path):
+        with open(md_path) as f:
+            render_result = mistletoe.markdown(f.readlines(), NotionRender)
+        return render_result
+
 
 if __name__ == '__main__':
     client_ = httpx.Client(proxies={'http://': 'http://127.0.0.1:7890', 'https://': 'http://127.0.0.1:7890'})
     p = BookProcessor(database_id='d0e931a36b43405996d118cf71957f6d', client=client_)
-    p.main('/home/harumonia/projects/docs/d2l-zh-t', 'd2l-zh-t')
+    p.main('/home/harumonia/projects/docs/note-book2-master/docs/ddd/00/', 'd2l-zh-t')

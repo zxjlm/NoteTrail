@@ -48,8 +48,18 @@ class NotionRender(BaseRenderer):
         return self.escape_html(token.content)
 
     def render_strong(self, token):
-        template = '<strong>{}</strong>'
-        return template.format(self.render_inner(token))
+        rich_text_template = {
+            "type": "text",
+            "text": {
+                "content": ''.join(
+                    [child.content for child in token.children if child.__class__.__name__ == 'RawText']),
+                "link": None,
+            },
+            "annotations": {
+                "bold": True
+            },
+        }
+        return rich_text_template
 
     def render_emphasis(self, token):
         template = '<em>{}</em>'
@@ -65,22 +75,42 @@ class NotionRender(BaseRenderer):
         return template.format(self.render_inner(token))
 
     def render_image(self, token):
-        template = '<img src="{}" alt="{}"{} />'
-        if token.title:
-            title = ' title="{}"'.format(self.escape_html(token.title))
-        else:
-            title = ''
-        return template.format(token.src, self.render_to_plain(token), title)
+        # template = '<img src="{}" alt="{}"{} />'
+        # if token.title:
+        #     title = ' title="{}"'.format(self.escape_html(token.title))
+        # else:
+        #     title = ''
+        # return template.format(token.src, self.render_to_plain(token), title)
+        block_template = {
+            "type": "image",
+            "image": {
+                "type": "external",
+                "external": {
+                    "url": "https://z3.ax1x.com/2021/11/29/oMdKrF.png"
+                }
+            }
+        }
+        return block_template
 
     def render_link(self, token):
-        template = '<a href="{target}"{title}>{inner}</a>'
-        target = self.escape_url(token.target)
-        if token.title:
-            title = ' title="{}"'.format(self.escape_html(token.title))
-        else:
-            title = ''
-        inner = self.render_inner(token)
-        return template.format(target=target, title=title, inner=inner)
+        # template = '<a href="{target}"{title}>{inner}</a>'
+        # target = self.escape_url(token.target)
+        # if token.title:
+        #     title = ' title="{}"'.format(self.escape_html(token.title))
+        # else:
+        #     title = ''
+        # inner = self.render_inner(token)
+        # return template.format(target=target, title=title, inner=inner)
+        rich_text_template = {
+            "type": "text",
+            "text": {
+                "content": ''.join(
+                    [child.content for child in token.children if child.__class__.__name__ == 'RawText']),
+                "link": None,
+            },
+            "href": token.target,
+        }
+        return rich_text_template
 
     def render_auto_link(self, token):
         template = '<a href="{target}">{inner}</a>'
@@ -95,7 +125,13 @@ class NotionRender(BaseRenderer):
         return self.render_inner(token)
 
     def render_raw_text(self, token):
-        return self.escape_html(token.content)
+        return {
+            "type": "text",
+            "text": {
+                "content": token.content,
+                "link": None,
+            }
+        }
 
     @staticmethod
     def render_html_span(token):
@@ -103,16 +139,11 @@ class NotionRender(BaseRenderer):
 
     def render_heading(self, token):
         inner = self.render_inner(token)
+        head_leval = "heading_{}".format(token.level if token.level <= 3 else 3)
         block_template = {
-            "type": "heading_{}".format(token.level),
-            "heading_1": {
-                "text": [{
-                    "type": "text",
-                    "text": {
-                        "content": inner,
-                        "link": ""
-                    }
-                }]
+            "type": head_leval,
+            head_leval: {
+                "text": inner
             }
         }
         return block_template
@@ -127,18 +158,12 @@ class NotionRender(BaseRenderer):
 
     def render_paragraph(self, token):
         # if self._suppress_ptag_stack[-1]:
-        #     return '{}'.format(self.render_inner(token))
+        #     return self.render_inner(token)
+        inner = self.render_inner(token)
         block_template = {
             "type": "paragraph",
             "paragraph": {
-                "text": [{
-                    "type": "text",
-                    "text": {
-                        "content": self.render_inner(token),
-                        "link": ""
-                    }
-                }],
-                # "children": [self.render_inner(token)]
+                "text": inner,
             }
         }
         return block_template
@@ -153,18 +178,38 @@ class NotionRender(BaseRenderer):
         return template.format(attr=attr, inner=inner)
 
     def render_list(self, token):
-        if token.start is not None:
+        block_template = {
+            "type": "paragraph",
+            "paragraph": {
+                "text": [{
+                    "type": "text",
+                    "text": {
+                        "content": "",
+                        "link": None
+                    }
+                }],
+                "children": []
+            }
+        }
+        self._suppress_ptag_stack.append(not token.loose)
+        inner = [self.render(child) for child in token.children]
+        block_template[block_template['type']]['children'] = inner
+        self._suppress_ptag_stack.pop()
+        return block_template
+
+    def render_list_item(self, token):
+        if token.leader == '-':
             block_template = {
-                "type": "numbered_list_item",
-                "numbered_list_item": {
+                "type": "bulleted_list_item",
+                "bulleted_list_item": {
                     "text": [{
                         "type": "text",
                         "text": {
                             "content": "",
-                            "link": ""
+                            "link": None
                         }
                     }],
-                    "children": self.render_inner(token)
+                    "children": []
                 }
             }
         else:
@@ -175,28 +220,23 @@ class NotionRender(BaseRenderer):
                         "type": "text",
                         "text": {
                             "content": "",
-                            "link": ""
+                            "link": None
                         }
                     }],
-                    "children": self.render_inner(token)
+                    "children": []
                 }
             }
-        self._suppress_ptag_stack.append(not token.loose)
-        inner = [self.render(child) for child in token.children]
-        block_template[block_template['type']]['children'] = inner
-        self._suppress_ptag_stack.pop()
-        return block_template
-
-    def render_list_item(self, token):
-        if len(token.children) == 0:
-            return '<li></li>'
+        # if len(token.children) == 1:
+        #     block_template[block_template['type']]['children'] = self.render(token.children[0])
+        #     return block_template
         inner = [self.render(child) for child in token.children]
         # if self._suppress_ptag_stack[-1]:
         #     if token.children[0].__class__.__name__ == 'Paragraph':
         #         inner_template = inner_template[1:]
         #     if token.children[-1].__class__.__name__ == 'Paragraph':
         #         inner_template = inner_template[:-1]
-        return inner
+        block_template[block_template['type']]['children'] = inner
+        return block_template
 
     def render_table(self, token):
         # This is actually gross and I wonder if there's a better way to do it.
@@ -264,12 +304,19 @@ class NotionRender(BaseRenderer):
         return html.escape(quote(html.unescape(raw), safe='/#:()*?=%@+,&;'))
 
     def render_inner(self, token):
-        if token.__class__.__name__ == 'List':
-            return map(self.render, token.children)
-        return ''.join(map(self.render, token.children))
+        # if token.__class__.__name__ == 'List':
+        #     return map(self.render, token.children)
+        try:
+            return ''.join(map(self.render, token.children))
+        except Exception as _e:
+            return list(map(self.render, token.children))
+
+    def render_multi_objects_and_combine(self, tokens):
+        pass
 
 
 if __name__ == "__main__":
+    # body.children[30].paragraph.text[0].text
     md_path_ = '/home/harumonia/projects/docs/note-book2-master/docs/ddd/00/README.md'
     with open(md_path_) as f:
         node = mistletoe.markdown(f.readlines(), NotionRender)
