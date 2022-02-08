@@ -159,6 +159,8 @@ class NotionRender(BaseRenderer):
     def render_paragraph(self, token):
         # if self._suppress_ptag_stack[-1]:
         #     return self.render_inner(token)
+        if token.children.__len__() == 1 and token.children[0].__class__.__name__ != 'RawText':
+            return self.render_inner(token)[0]
         inner = self.render_inner(token)
         block_template = {
             "type": "paragraph",
