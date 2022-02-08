@@ -18,32 +18,26 @@ from loguru import logger
 
 def list_block_wrap(func):
     @wraps(func)
-    def wrapper(cls, node_arg):
+    def wrapper(self, node_arg):
         ret = []
-        for children in node_arg.contents:
-            if children == '\n' or children.name is None:
-                continue
-            elif children.name == 'i':
-                ret += wrapper(cls, children)
+
+        for child in node_arg.contents:
+            if child == '\n' or child.name is None:
                 continue
 
-            convert_result = getattr(cls, f'convert_{children.name}_elem')(children)
+            convert_result = getattr(self, f'convert_{child.name}_elem')(child)
 
             if convert_result:
-                ret.append(func(cls, convert_result))
-        return ret
+                ret.append(convert_result)
+
+        children = self.children_content(node_arg)
+        return func(self, ret, children)
 
     return wrapper
 
 
 class BlockRender:
-    @classmethod
-    def convert_p_elem(cls, p_node):
-        if p_node.parent.name == 'li':
-            return {
-                "content": p_node.text,
-                "link": None
-            }
+    def convert_p_elem(self, p_node, children=None):
         return {
             "type": "paragraph",
             "paragraph": {
@@ -53,19 +47,18 @@ class BlockRender:
                         "content": p_node.text,
                         "link": None
                     }
-                }]
+                }],
+                "children": children
             },
         }
 
-    @classmethod
-    def convert_hr_elem(cls, _):
+    def convert_hr_elem(self, _, __):
         return {
             "type": "divider",
             "divider": {}
         }
 
-    @classmethod
-    def convert_a_elem(cls, a_node):
+    def convert_a_elem(self, a_node, children=None):
         return {
             "content": a_node.text,
             "link": {
@@ -73,26 +66,40 @@ class BlockRender:
             }
         }
 
-    @classmethod
-    @list_block_wrap
-    def convert_li_elem(cls, convert_result: str):
+    def convert_li_elem(self, li_node, children=None):
         return {
             "type": "text",
-            "text": convert_result
+            "text": {
+                'content': li_node.text
+            },
         }
 
-    @classmethod
     @list_block_wrap
-    def convert_ul_elem(cls, convert_result: str):
+    def convert_ul_elem(self, convert_result: list, children=None):
+        if children is None:
+            children = []
+
         return {
             "type": "bulleted_list_item",
             "bulleted_list_item": {
                 "text": convert_result
+            },
+            "children": children
+        }
+
+    @list_block_wrap
+    def convert_ol_elem(self, convert_result: list, children=None):
+        return {
+            "type": "numbered_list_item",
+            "numbered_list_item": {
+                "text": convert_result
             }
         }
 
-    @classmethod
-    def convert_pre_elem(cls, pre_node):
+    def convert_em_elem(self, em_node, children=None):
+        print(em_node)
+
+    def convert_pre_elem(self, pre_node, children=None):
         code_node = pre_node.code
         return {
             "type": "code",
@@ -107,8 +114,7 @@ class BlockRender:
             }
         }
 
-    @classmethod
-    def convert_head_elem(cls, head_node):
+    def convert_head_elem(self, head_node, children=None):
         level = int(re.search(r'h(\d)', head_node.name).group(1))
         if level > 3:
             logger.warning(f'head level can`t over than 3, now is {level}')
@@ -126,8 +132,7 @@ class BlockRender:
             }
         }
 
-    @classmethod
-    def convert_blockquote_elem(cls, quote_node):
+    def convert_blockquote_elem(self, quote_node, children=None):
         return {
             "type": "quote",
             "quote": {
@@ -140,8 +145,8 @@ class BlockRender:
             }
         }
 
-    @classmethod
-    def convert_code_elem(cls, code_node):
+    def convert_code_elem(self, code_node, children=None):
+        # language = validate_language
         return {
             "type": "code",
             "code": {
@@ -163,15 +168,13 @@ class BlockRender:
         """
         ret = []
         for children in basic_node.contents:
-            if children == '\n' or children is None:
+            if not self.is_iterable_node(children):
                 continue
+
             if children.name is None:
-                logger.warning(f'skip empty node, {children}')
-                continue
-            if re.match(r'h\d', children.name):
-                convert_result = self.convert_head_elem(children)
+                convert_result = self.convert_p_elem(children)
             else:
-                convert_result = getattr(self, f'convert_{children.name}_elem')(children)
+                convert_result = self.parser_node_2_notion_style(children)
 
             if convert_result:
                 if isinstance(convert_result, list):
@@ -179,6 +182,31 @@ class BlockRender:
                 else:
                     ret.append(convert_result)
         return ret
+
+    def parser_node_2_notion_style(self, node):
+        if re.match(r'h\d', node.name):
+            convert_result = self.convert_head_elem(node)
+        else:
+            convert_result = getattr(self, f'convert_{node.name}_elem')(node)
+        return convert_result
+
+    @staticmethod
+    def is_iterable_node(node):
+        if node == '\n' or node is None:
+            return False
+        # if node.name is None:
+        #     logger.warning(f'skip empty node, {node.text}')
+        #     return False
+
+        return True
+
+    def children_content(self, child_node):
+        if not child_node.contents:
+            return []
+        if child_node == '\n' or child_node.name is None:
+            return []
+
+        return self.content_iter(child_node)
 
     def main(self, md_path: str):
         with open(md_path) as f:
@@ -191,7 +219,7 @@ class BlockRender:
 
 
 if __name__ == '__main__':
-    md_path_ = '/Users/zhangxinjian/Projects/PythonProject/mylearnlab/jupyter/myExercises/readme.md'
+    md_path_ = '/home/harumonia/projects/docs/note-book2-master/docs/ddd/00/README.md'
     p = BlockRender()
     ress = p.main(md_path_)
 
