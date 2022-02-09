@@ -1,3 +1,6 @@
+from mistletoe import Document
+
+
 class Bcolors:
     HEADER = '\033[95m'
     OKBLUE = '\033[94m'
@@ -22,3 +25,21 @@ def validate_language(language: str) -> bool:
         return True
     return False
 
+
+def markdown_render(iterable, path, basic_path, bookname, renderer):
+    """
+    Converts markdown input to the output supported by the given renderer.
+    If no renderer is supplied, ``HTMLRenderer`` is used.
+
+    Note that extra token types supported by the given renderer
+    are automatically (and temporarily) added to the parsing process.
+    """
+    with renderer(path, basic_path, bookname) as renderer:
+        return renderer.render(Document(iterable))
+
+
+def erase_prefix_string(string, prefix):
+    cnt = 0
+    while cnt < len(prefix) and string[cnt] == prefix[cnt]:
+        cnt += 1
+    return string[cnt:]

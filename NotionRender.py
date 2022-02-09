@@ -1,6 +1,7 @@
+import os
+import pathlib
 from pprint import pprint
 
-import mistletoe
 import re
 import sys
 from itertools import chain
@@ -8,6 +9,9 @@ from urllib.parse import quote
 from mistletoe.block_token import HTMLBlock
 from mistletoe.span_token import HTMLSpan
 from mistletoe.base_renderer import BaseRenderer
+
+from OSSHandler import oss_handler
+from utils import markdown_render, erase_prefix_string
 
 if sys.version_info < (3, 4):
     from mistletoe import _html as html
@@ -22,12 +26,13 @@ class NotionRender(BaseRenderer):
     See mistletoe.base_renderer module for more info.
     """
 
-    def __init__(self, *extras):
+    def __init__(self, mdfile_path, basic_path, bookname, *extras):
         """
         Args:
             extras (list): allows subclasses to add even more custom tokens.
         """
         self._suppress_ptag_stack = [False]
+        self._up_level = [False]
         super().__init__(*chain((HTMLBlock, HTMLSpan), extras))
         # html.entities.html5 includes entitydefs not ending with ';',
         # CommonMark seems to hate them, so...
@@ -36,6 +41,10 @@ class NotionRender(BaseRenderer):
                               r'|#[xX][0-9a-fA-F]+;'
                               r'|[^\t\n\f <&#;]{1,32};)')
         html._charref = _charref
+
+        self.mdfile_path = mdfile_path
+        self.basic_path = basic_path
+        self.bookname = bookname
 
     def __exit__(self, *args):
         super().__exit__(*args)
@@ -75,18 +84,16 @@ class NotionRender(BaseRenderer):
         return template.format(self.render_inner(token))
 
     def render_image(self, token):
-        # template = '<img src="{}" alt="{}"{} />'
-        # if token.title:
-        #     title = ' title="{}"'.format(self.escape_html(token.title))
-        # else:
-        #     title = ''
-        # return template.format(token.src, self.render_to_plain(token), title)
+        img_path = os.path.join(os.path.dirname(self.mdfile_path), token.src)
+        img_path = pathlib.Path(img_path).__str__()
+        storage_path = os.path.join(self.bookname, erase_prefix_string(img_path, self.basic_path))
+        oss_url = oss_handler.upload_pic(img_path, storage_path)
         block_template = {
             "type": "image",
             "image": {
                 "type": "external",
                 "external": {
-                    "url": "https://z3.ax1x.com/2021/11/29/oMdKrF.png"
+                    "url": oss_url
                 }
             }
         }
@@ -157,9 +164,9 @@ class NotionRender(BaseRenderer):
         return '\n'.join(elements)
 
     def render_paragraph(self, token):
-        # if self._suppress_ptag_stack[-1]:
-        #     return self.render_inner(token)
-        if token.children.__len__() == 1 and token.children[0].__class__.__name__ != 'RawText':
+        if self._suppress_ptag_stack[-1]:
+            return self.render_inner(token)
+        if token.children.__len__() == 1 and token.children[0].__class__.__name__ == 'Image':
             return self.render_inner(token)[0]
         inner = self.render_inner(token)
         block_template = {
@@ -216,15 +223,17 @@ class NotionRender(BaseRenderer):
                     "children": []
                 }
             }
+
         if len(token.children) == 0:
             return block_template
         inner = [self.render(child) for child in token.children]
         if self._suppress_ptag_stack[-1]:
             if token.children[0].__class__.__name__ == 'Paragraph':
                 block_template[block_template['type']]['children'] = inner[1:]
-                block_template[block_template['type']]['text'] = inner[0]['paragraph']['text']
-            # if token.children[-1].__class__.__name__ == 'Paragraph':
-            #     block_template[block_template['type']]['children'] = inner[:-1]
+                block_template[block_template['type']]['text'] = inner[0]
+            if token.children[-1].__class__.__name__ == 'Paragraph':
+                block_template[block_template['type']]['children'] = inner[:-1]
+                block_template[block_template['type']]['text'] = inner[-1]
         else:
             block_template[block_template['type']]['children'] = inner
         # block_template[block_template['type']]['children'] = inner
@@ -268,11 +277,20 @@ class NotionRender(BaseRenderer):
 
     @staticmethod
     def render_thematic_break(token):
-        return '<hr />'
+        return {
+            "type": "divider",
+            "divider": {}
+        }
 
     @staticmethod
     def render_line_break(token):
-        return '\n' if token.soft else '<br />\n'
+        return {
+            "type": "text",
+            "text": {
+                "content": "",
+                "link": None
+            }
+        }
 
     @staticmethod
     def render_html_block(token):
@@ -317,8 +335,9 @@ class NotionRender(BaseRenderer):
 
 
 if __name__ == "__main__":
-    # body.children[15].paragraph.children[0].bulleted_list_item.text[0].text
-    md_path_ = '/home/harumonia/projects/docs/note-book2-master/docs/ddd/00/README.md'
+    # body.children[82].paragraph.text[1].text
+    md_path_ = '/home/harumonia/projects/docs/note-book2-master/docs/ddd/03/06.md'
     with open(md_path_) as f:
-        node = mistletoe.markdown(f.readlines(), NotionRender)
-    pprint(node)
+        node = markdown_render(f.readlines(), md_path_, "/home/harumonia/projects/docs/note-book2-master/docs/ddd/",
+                               'ddd', NotionRender)
+        pprint(node)

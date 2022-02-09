@@ -11,23 +11,26 @@
 import os
 
 import httpx
-import mistletoe
+from loguru import logger
 
 from BlockRender import BlockRender
 from CharacterScanner import CharacterScanner
 
 from NotionClient import MyNotionClient
 from NotionRender import NotionRender
+from utils import markdown_render
 
 
 class BookProcessor:
-    def __init__(self, database_id=None, page_id=None, client=None):
+    def __init__(self, path, bookname, database_id=None, page_id=None, client=None):
         if (database_id or page_id) is None:
             raise Exception('database or page must have one')
         self.database_id = database_id
         self.page_id = page_id
+        self.basic_path = path
         self.notion = MyNotionClient(client)
         self.block_render = BlockRender()
+        self.bookname = bookname
 
     def generate_character_block(self, child, raw_title=None):
         if not raw_title:
@@ -69,13 +72,14 @@ class BookProcessor:
             self.dir_processor(children, response['id'])
 
     def file_processor(self, file_path, page_id):
+        logger.info('----------------> Processing file: {}'.format(file_path))
         response = self.notion.create_page(parent={"page_id": page_id},
                                            properties=self.generate_character_block(file_path),
                                            children=self.render_file(file_path))
         return response
 
-    def main(self, path, book_name, book_url=None):
-        path_dict = CharacterScanner(path).scanner()
+    def main(self, book_url=None):
+        path_dict = CharacterScanner(self.basic_path).scanner()
         CharacterScanner.check_path(path_dict)
 
         if self.database_id:
@@ -84,7 +88,7 @@ class BookProcessor:
                                    'title': [
                                        {
                                            'type': 'text',
-                                           'text': {'content': book_name, 'link': book_url},
+                                           'text': {'content': self.bookname, 'link': book_url},
                                        }
                                    ]
                                    },
@@ -104,11 +108,11 @@ class BookProcessor:
 
     def render_file(self, md_path):
         with open(md_path) as f:
-            render_result = mistletoe.markdown(f.readlines(), NotionRender)
+            render_result = markdown_render(f.readlines(), md_path, self.basic_path, self.bookname, NotionRender)
         return render_result
 
 
 if __name__ == '__main__':
     client_ = httpx.Client(proxies={'http://': 'http://127.0.0.1:7890', 'https://': 'http://127.0.0.1:7890'})
-    p = BookProcessor(database_id='d0e931a36b43405996d118cf71957f6d', client=client_)
-    p.main('/home/harumonia/projects/docs/note-book2-master/docs/ddd/', 'ddd')
+    p = BookProcessor('/home/harumonia/projects/docs/note-book2-master/docs/ddd/', 'ddd', database_id='d0e931a36b43405996d118cf71957f6d', client=client_)
+    p.main()
