@@ -204,13 +204,7 @@ class NotionRender(BaseRenderer):
             block_template = {
                 "type": "bulleted_list_item",
                 "bulleted_list_item": {
-                    "text": [{
-                        "type": "text",
-                        "text": {
-                            "content": "",
-                            "link": None
-                        }
-                    }],
+                    "text": [],
                     "children": []
                 }
             }
@@ -218,26 +212,22 @@ class NotionRender(BaseRenderer):
             block_template = {
                 "type": "bulleted_list_item",
                 "bulleted_list_item": {
-                    "text": [{
-                        "type": "text",
-                        "text": {
-                            "content": "",
-                            "link": None
-                        }
-                    }],
+                    "text": [],
                     "children": []
                 }
             }
-        # if len(token.children) == 1:
-        #     block_template[block_template['type']]['children'] = self.render(token.children[0])
-        #     return block_template
+        if len(token.children) == 0:
+            return block_template
         inner = [self.render(child) for child in token.children]
-        # if self._suppress_ptag_stack[-1]:
-        #     if token.children[0].__class__.__name__ == 'Paragraph':
-        #         inner_template = inner_template[1:]
-        #     if token.children[-1].__class__.__name__ == 'Paragraph':
-        #         inner_template = inner_template[:-1]
-        block_template[block_template['type']]['children'] = inner
+        if self._suppress_ptag_stack[-1]:
+            if token.children[0].__class__.__name__ == 'Paragraph':
+                block_template[block_template['type']]['children'] = inner[1:]
+                block_template[block_template['type']]['text'] = inner[0]['paragraph']['text']
+            # if token.children[-1].__class__.__name__ == 'Paragraph':
+            #     block_template[block_template['type']]['children'] = inner[:-1]
+        else:
+            block_template[block_template['type']]['children'] = inner
+        # block_template[block_template['type']]['children'] = inner
         return block_template
 
     def render_table(self, token):
@@ -316,9 +306,18 @@ class NotionRender(BaseRenderer):
     def render_multi_objects_and_combine(self, tokens):
         pass
 
+    # def split_children(self, token):
+    #     """
+    #     split children to text and non-text group
+    #     :return:
+    #     """
+    #     text, non_text = [], []
+    #     for child in token.children:
+    #         if child.__class__.__name__ == 'RawText':
+
 
 if __name__ == "__main__":
-    # body.children[30].paragraph.text[0].text
+    # body.children[15].paragraph.children[0].bulleted_list_item.text[0].text
     md_path_ = '/home/harumonia/projects/docs/note-book2-master/docs/ddd/00/README.md'
     with open(md_path_) as f:
         node = mistletoe.markdown(f.readlines(), NotionRender)

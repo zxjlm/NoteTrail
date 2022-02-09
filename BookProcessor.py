@@ -15,7 +15,6 @@ import mistletoe
 
 from BlockRender import BlockRender
 from CharacterScanner import CharacterScanner
-from notion_client import Client
 
 from NotionClient import MyNotionClient
 from NotionRender import NotionRender
@@ -112,4 +111,4 @@ class BookProcessor:
 if __name__ == '__main__':
     client_ = httpx.Client(proxies={'http://': 'http://127.0.0.1:7890', 'https://': 'http://127.0.0.1:7890'})
     p = BookProcessor(database_id='d0e931a36b43405996d118cf71957f6d', client=client_)
-    p.main('/home/harumonia/projects/docs/note-book2-master/docs/ddd/00/', 'd2l-zh-t')
+    p.main('/home/harumonia/projects/docs/note-book2-master/docs/ddd/', 'ddd')
