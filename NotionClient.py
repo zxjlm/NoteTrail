@@ -12,3 +12,16 @@ class MyNotionClient:
         properties = kwargs.get('properties', 'empty')
         logger.debug("Creating page, properties: {}".format(properties))
         return self.client.pages.create(*args, **kwargs)
+
+    def update_page(self, *args, **kwargs):
+        properties = kwargs.get('properties', 'empty')
+        logger.debug("Creating page, properties: {}".format(properties))
+        return self.client.pages.create(*args, **kwargs)
+
+    def update_block(self, block_id, child):
+        # properties = kwargs.get('properties', 'empty')
+        # logger.debug("Creating page, properties: {}".format(properties))
+        return self.client.blocks.update(block_id=block_id, child=child)
+
+    def append_block_children(self, block_id, children):
+        return self.client.blocks.children.append(block_id=block_id, children=children)

@@ -335,9 +335,19 @@ class NotionRender(BaseRenderer):
 
 
 if __name__ == "__main__":
-    # body.children[82].paragraph.text[1].text
-    md_path_ = '/home/harumonia/projects/docs/note-book2-master/docs/ddd/03/06.md'
+    # body.children[49].paragraph.children[0].bulleted_list_item.children[1].paragraph.children
+    md_path_ = '/home/harumonia/projects/docs/note-book2-master/docs/ddd/03/03.md'
     with open(md_path_) as f:
         node = markdown_render(f.readlines(), md_path_, "/home/harumonia/projects/docs/note-book2-master/docs/ddd/",
                                'ddd', NotionRender)
         pprint(node)
+    from NotionClient import MyNotionClient
+    import httpx
+
+    client_ = httpx.Client(proxies={'http://': 'http://127.0.0.1:7890', 'https://': 'http://127.0.0.1:7890'})
+    nt = MyNotionClient(client_)
+    response = nt.append_block_children('3539b093-783d-4b96-a826-f65af351bb48', node)
+    print(response)
+    # nt.update_page(page_id="beee4c9245a7447291c14c9dd83029b4",
+    #                # properties=self.generate_character_block(file_path),
+    #                children=node)
