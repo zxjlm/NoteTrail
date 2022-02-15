@@ -64,6 +64,7 @@ class SuffixRender:
 
             pprint(node_)
 
+
 class NotionRender(BaseRenderer):
     """
     HTML renderer class.
@@ -251,13 +252,14 @@ class NotionRender(BaseRenderer):
         self._up_level -= 1
         return block_template
 
-    def render_list_item(self, token):
+    @staticmethod
+    def select_list_template(token):
         if token.leader == '-':
             block_template = {
                 "type": "bulleted_list_item",
                 "bulleted_list_item": {
                     "text": [],
-                    "children": []
+                    # "children": []
                 }
             }
         else:
@@ -265,9 +267,13 @@ class NotionRender(BaseRenderer):
                 "type": "bulleted_list_item",
                 "bulleted_list_item": {
                     "text": [],
-                    "children": []
+                    # "children": []
                 }
             }
+        return block_template
+
+    def render_list_item(self, token):
+        block_template = self.select_list_template(token)
 
         if len(token.children) == 0:
             return block_template
@@ -280,12 +286,10 @@ class NotionRender(BaseRenderer):
             else:
                 digest = hashlib.md5(f"{time.time()}".encode('utf-8')).hexdigest()
                 time.sleep(0.1)
-                inner.append({
-                    "type": "paragraph",
-                    "paragraph": {
-                        "text": [{"type": "text", "text": {"content": 'placeholder:' + digest, "link": None}}],
-                    }
-                })
+                block_template_ = self.select_list_template(child.children[0])
+                block_template_[block_template_['type']]['text'] = [
+                    {"type": "text", "text": {"content": 'placeholder:' + digest, "link": None}}]
+                inner.append(block_template_)
                 WatcherClass.DIGEST_TOKEN_MAPPER[digest] = child
 
         if self._suppress_ptag_stack[-1]:
