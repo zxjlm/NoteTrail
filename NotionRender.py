@@ -1,5 +1,8 @@
+import hashlib
+import logging
 import os
 import pathlib
+import time
 from pprint import pprint
 
 import re
@@ -11,13 +14,55 @@ from mistletoe.span_token import HTMLSpan
 from mistletoe.base_renderer import BaseRenderer
 
 from OSSHandler import oss_handler
-from utils import markdown_render, erase_prefix_string
+from utils import markdown_render, erase_prefix_string, BookInfo
 
 if sys.version_info < (3, 4):
     from mistletoe import _html as html
 else:
     import html
 
+from NotionClient import MyNotionClient
+import httpx
+
+client_ = httpx.Client(proxies={'http://': 'http://127.0.0.1:7890', 'https://': 'http://127.0.0.1:7890'})
+nt = MyNotionClient(client_)
+
+
+class WatcherClass:
+    DIGEST_TOKEN_MAPPER = {}
+    IMAGES = []
+
+
+class SuffixRender:
+    def __init__(self):
+
+        self._object_digest_mapper = {}
+
+    def recursion_build_block_id_mapper(self, resp):
+        for obj in resp['results']:
+            if obj['has_children']:
+                resp_ = nt.retrieve_block_children(obj['id'])
+                self.recursion_build_block_id_mapper(resp_)
+            else:
+                if obj['type'] == 'paragraph':
+                    if len(obj['paragraph']['text']) != 1:
+                        continue
+                    clean_text = obj['paragraph']['text'][0]['plain_text'].replace("placeholder:", '')
+                    if clean_text in WatcherClass.DIGEST_TOKEN_MAPPER.keys():
+                        self._object_digest_mapper[obj['id']] = clean_text
+                # else:
+                #     logging.error("Unhandled block type: {}".format(obj['type']))
+
+    def recursion_insert(self, resp):
+        self.recursion_build_block_id_mapper(resp)
+        print(self._object_digest_mapper)
+
+        while WatcherClass.DIGEST_TOKEN_MAPPER:
+            digest, token = WatcherClass.DIGEST_TOKEN_MAPPER.popitem()
+            nr = NotionRender()
+            node_ = nr.render_list(token)
+
+            pprint(node_)
 
 class NotionRender(BaseRenderer):
     """
@@ -26,13 +71,14 @@ class NotionRender(BaseRenderer):
     See mistletoe.base_renderer module for more info.
     """
 
-    def __init__(self, mdfile_path, basic_path, bookname, *extras):
+    def __init__(self, *extras):
         """
         Args:
             extras (list): allows subclasses to add even more custom tokens.
         """
         self._suppress_ptag_stack = [False]
-        self._up_level = [False]
+        self._up_level = 0
+
         super().__init__(*chain((HTMLBlock, HTMLSpan), extras))
         # html.entities.html5 includes entitydefs not ending with ';',
         # CommonMark seems to hate them, so...
@@ -41,10 +87,6 @@ class NotionRender(BaseRenderer):
                               r'|#[xX][0-9a-fA-F]+;'
                               r'|[^\t\n\f <&#;]{1,32};)')
         html._charref = _charref
-
-        self.mdfile_path = mdfile_path
-        self.basic_path = basic_path
-        self.bookname = bookname
 
     def __exit__(self, *args):
         super().__exit__(*args)
@@ -84,9 +126,9 @@ class NotionRender(BaseRenderer):
         return template.format(self.render_inner(token))
 
     def render_image(self, token):
-        img_path = os.path.join(os.path.dirname(self.mdfile_path), token.src)
+        img_path = os.path.join(os.path.dirname(BookInfo.CURRENT_FILE_PATH), token.src)
         img_path = pathlib.Path(img_path).__str__()
-        storage_path = os.path.join(self.bookname, erase_prefix_string(img_path, self.basic_path))
+        storage_path = os.path.join(BookInfo.BOOK_NAME, erase_prefix_string(img_path, BookInfo.BOOK_PATH))
         oss_url = oss_handler.upload_pic(img_path, storage_path)
         block_template = {
             "type": "image",
@@ -187,23 +229,26 @@ class NotionRender(BaseRenderer):
         return template.format(attr=attr, inner=inner)
 
     def render_list(self, token):
+        self._up_level += 1
+
         block_template = {
             "type": "paragraph",
             "paragraph": {
-                "text": [{
-                    "type": "text",
-                    "text": {
-                        "content": "",
-                        "link": None
-                    }
-                }],
-                "children": []
+                "text": [],
+                # "children": []
             }
         }
         self._suppress_ptag_stack.append(not token.loose)
         inner = [self.render(child) for child in token.children]
+
+        if self._up_level > 1:
+            self._up_level -= 1
+            self._suppress_ptag_stack.pop()
+            return
+
         block_template[block_template['type']]['children'] = inner
         self._suppress_ptag_stack.pop()
+        self._up_level -= 1
         return block_template
 
     def render_list_item(self, token):
@@ -226,16 +271,36 @@ class NotionRender(BaseRenderer):
 
         if len(token.children) == 0:
             return block_template
-        inner = [self.render(child) for child in token.children]
+
+        inner = []
+        for child in token.children:
+            render_result = self.render(child)
+            if render_result:
+                inner.append(render_result)
+            else:
+                digest = hashlib.md5(f"{time.time()}".encode('utf-8')).hexdigest()
+                time.sleep(0.1)
+                inner.append({
+                    "type": "paragraph",
+                    "paragraph": {
+                        "text": [{"type": "text", "text": {"content": 'placeholder:' + digest, "link": None}}],
+                    }
+                })
+                WatcherClass.DIGEST_TOKEN_MAPPER[digest] = child
+
         if self._suppress_ptag_stack[-1]:
             if token.children[0].__class__.__name__ == 'Paragraph':
                 block_template[block_template['type']]['children'] = inner[1:]
                 block_template[block_template['type']]['text'] = inner[0]
-            if token.children[-1].__class__.__name__ == 'Paragraph':
+            elif token.children[-1].__class__.__name__ == 'Paragraph':
                 block_template[block_template['type']]['children'] = inner[:-1]
                 block_template[block_template['type']]['text'] = inner[-1]
         else:
-            block_template[block_template['type']]['children'] = inner
+            if token.children[0].__class__.__name__ == 'Paragraph':
+                block_template[block_template['type']]['children'] = inner[1:]
+                block_template[block_template['type']]['text'] = inner[0]['paragraph']['text']
+            else:
+                block_template[block_template['type']]['children'] = inner
         # block_template[block_template['type']]['children'] = inner
         return block_template
 
@@ -336,18 +401,19 @@ class NotionRender(BaseRenderer):
 
 if __name__ == "__main__":
     # body.children[49].paragraph.children[0].bulleted_list_item.children[1].paragraph.children
-    md_path_ = '/home/harumonia/projects/docs/note-book2-master/docs/ddd/03/03.md'
+    BookInfo.BOOK_PATH = "/home/harumonia/projects/docs/note-book2-master/docs/ddd/"
+    BookInfo.BOOK_NAME = 'ddd'
+    md_path_ = '/home/harumonia/projects/docs/test.md'
+    BookInfo.CURRENT_FILE_PATH = md_path_
     with open(md_path_) as f:
-        node = markdown_render(f.readlines(), md_path_, "/home/harumonia/projects/docs/note-book2-master/docs/ddd/",
-                               'ddd', NotionRender)
-        pprint(node)
-    from NotionClient import MyNotionClient
-    import httpx
+        node = markdown_render(f.readlines(), NotionRender)
 
-    client_ = httpx.Client(proxies={'http://': 'http://127.0.0.1:7890', 'https://': 'http://127.0.0.1:7890'})
-    nt = MyNotionClient(client_)
-    response = nt.append_block_children('3539b093-783d-4b96-a826-f65af351bb48', node)
+    response = nt.append_block_children('3fe7d4ce-dc7c-44c2-a7cd-f6c6c358d911', node)
     print(response)
+
+    sf = SuffixRender()
+    sf.recursion_insert(response)
+
     # nt.update_page(page_id="beee4c9245a7447291c14c9dd83029b4",
     #                # properties=self.generate_character_block(file_path),
     #                children=node)

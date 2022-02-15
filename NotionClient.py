@@ -25,3 +25,7 @@ class MyNotionClient:
 
     def append_block_children(self, block_id, children):
         return self.client.blocks.children.append(block_id=block_id, children=children)
+
+    def retrieve_block_children(self, block_id):
+        logger.debug("Retrieving block children, block_id: {}".format(block_id))
+        return self.client.blocks.children.list(block_id=block_id)

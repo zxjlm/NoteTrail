@@ -5,6 +5,8 @@ from loguru import logger
 
 
 class OSSHandler:
+    BASIC_URL = 'https://notion-oss-bucket.oss-cn-shanghai.aliyuncs.com/'
+
     def __init__(self):
         ak = os.environ.get('ALI_OSS_AK')
         sk = os.environ.get('ALI_OSS_SK')
@@ -22,10 +24,10 @@ class OSSHandler:
         return self.bucket.object_exists(name)
 
     def upload_pic(self, path, filename):
-        basic_url = 'https://notion-oss-bucket.oss-cn-shanghai.aliyuncs.com/'
+
         if self.validate_pic(filename):
             logger.info('{} already exists'.format(filename))
-            return basic_url + filename
+            return self.BASIC_URL + filename
 
         logger.info('uploading {}'.format(filename))
         with open(path, 'rb') as fileobj:
@@ -34,7 +36,7 @@ class OSSHandler:
             self.bucket.put_object(filename, fileobj)
         logger.info('uploaded {}'.format(filename))
 
-        return basic_url + filename
+        return self.BASIC_URL + filename
 
 
 oss_handler = OSSHandler()

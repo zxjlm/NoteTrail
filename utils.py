@@ -1,6 +1,12 @@
 from mistletoe import Document
 
 
+class BookInfo:
+    BOOK_NAME = ""
+    BOOK_PATH = ""
+    CURRENT_FILE_PATH = ""
+
+
 class Bcolors:
     HEADER = '\033[95m'
     OKBLUE = '\033[94m'
@@ -26,7 +32,7 @@ def validate_language(language: str) -> bool:
     return False
 
 
-def markdown_render(iterable, path, basic_path, bookname, renderer):
+def markdown_render(iterable, renderer):
     """
     Converts markdown input to the output supported by the given renderer.
     If no renderer is supplied, ``HTMLRenderer`` is used.
@@ -34,7 +40,7 @@ def markdown_render(iterable, path, basic_path, bookname, renderer):
     Note that extra token types supported by the given renderer
     are automatically (and temporarily) added to the parsing process.
     """
-    with renderer(path, basic_path, bookname) as renderer:
+    with renderer() as renderer:
         return renderer.render(Document(iterable))
 
 
