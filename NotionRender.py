@@ -3,12 +3,15 @@ import logging
 import os
 import pathlib
 import time
+from functools import reduce
 from pprint import pprint
 
 import re
 import sys
 from itertools import chain
 from urllib.parse import quote
+
+from loguru import logger
 from mistletoe.block_token import HTMLBlock
 from mistletoe.span_token import HTMLSpan
 from mistletoe.base_renderer import BaseRenderer
@@ -29,40 +32,96 @@ nt = MyNotionClient(client_)
 
 
 class WatcherClass:
-    DIGEST_TOKEN_MAPPER = {}
+    DIGEST_TOKEN_FAMILY = []
     IMAGES = []
+
+
+class ObjectTree:
+    def __init__(self, parent: str, children: list):
+        self.children = children
+        self.parent = parent
 
 
 class SuffixRender:
     def __init__(self):
-
+        self._object_tree = {}
         self._object_digest_mapper = {}
+        self._digest_tokens = set()
+        self.nr = NotionRender()
 
-    def recursion_build_block_id_mapper(self, resp):
-        for obj in resp['results']:
+    def rebuild_children(self, token, children):
+        result = []
+        for child in children:
+            if child['type'] in ['numbered_list_item', 'bulleted_list_item']:
+                result.append(self.nr.render(token)['paragraph']['children'][0])
+            else:
+                result.append({
+                    'type': child['type'],
+                    child['type']: child[child['type']]
+                })
+        return result
+
+    def rebuild_family(self, digest_token_family: dict, children: list):
+        cluster_id = list(digest_token_family.keys())[0]
+        family_ = [self._object_digest_mapper[key] for key in digest_token_family.keys()]
+        check_cluster = reduce(lambda foo, bar: foo if foo['parent'] == bar['parent'] else 0, family_)
+        if not check_cluster:
+            logger.error(f'cluster_id: {cluster_id}')
+            exit(1)
+        new_children = []
+        for child in children:
+            if child['type'] in ['numbered_list_item', 'bulleted_list_item']:
+                digest = child[child['type']]['text'][0]['plain_text'].replace("placeholder:", '')
+                new_children.append(self.nr.render(digest_token_family[digest])['paragraph']['children'][0])
+            else:
+                new_children.append({
+                    'type': child['type'],
+                    child['type']: child[child['type']]
+                })
+        return new_children
+
+    def build_digest_index(self):
+        for digest_token_dict in WatcherClass.DIGEST_TOKEN_FAMILY:
+            for token in digest_token_dict.keys():
+                self._digest_tokens.add(token)
+
+    def update_object_digest_mapper(self, obj, parent, children):
+        clean_text = obj[obj['type']]['text'][0]['plain_text'].replace("placeholder:", '')
+        if clean_text in self._digest_tokens:
+            self._object_digest_mapper[clean_text] = {
+                'id': obj['id'],
+                'parent': parent,
+                'children': children
+            }
+
+    def recursion_build_block_id_mapper(self, resp, parent=None):
+        for idx, obj in enumerate(resp['results']):
             if obj['has_children']:
                 resp_ = nt.retrieve_block_children(obj['id'])
-                self.recursion_build_block_id_mapper(resp_)
+                self.recursion_build_block_id_mapper(resp_, parent=obj['id'])
             else:
-                if obj['type'] == 'paragraph':
-                    if len(obj['paragraph']['text']) != 1:
-                        continue
-                    clean_text = obj['paragraph']['text'][0]['plain_text'].replace("placeholder:", '')
-                    if clean_text in WatcherClass.DIGEST_TOKEN_MAPPER.keys():
-                        self._object_digest_mapper[obj['id']] = clean_text
-                # else:
-                #     logging.error("Unhandled block type: {}".format(obj['type']))
+                if obj['type'] in ['numbered_list_item', 'bulleted_list_item']:
+                    self.update_object_digest_mapper(obj, parent, resp['results'])
 
-    def recursion_insert(self, resp):
-        self.recursion_build_block_id_mapper(resp)
-        print(self._object_digest_mapper)
+    def recursion_insert(self, block_id):
 
-        while WatcherClass.DIGEST_TOKEN_MAPPER:
-            digest, token = WatcherClass.DIGEST_TOKEN_MAPPER.popitem()
-            nr = NotionRender()
-            node_ = nr.render_list(token)
+        while WatcherClass.DIGEST_TOKEN_FAMILY:
+            resp = nt.retrieve_block_children(block_id)
+            # self._object_digest_mapper = {}
+            self.build_digest_index()
+            self.recursion_build_block_id_mapper(resp)
+            print(self._object_digest_mapper)
 
-            pprint(node_)
+            digest_token_family = WatcherClass.DIGEST_TOKEN_FAMILY.pop()
+            cluster_digest = list(digest_token_family.keys())[0]
+
+            obj = self._object_digest_mapper[cluster_digest]
+
+            children = self.rebuild_family(digest_token_family, children=obj['children'])
+            nt.delete_all_children(block_id=obj['parent'], children=obj['children'])
+            # children = self.rebuild_children(token, children=obj['children'])
+            nt.append_block_children(block_id=obj['parent'], children=children)
+            block_id = obj['parent']
 
 
 class NotionRender(BaseRenderer):
@@ -264,7 +323,7 @@ class NotionRender(BaseRenderer):
             }
         else:
             block_template = {
-                "type": "bulleted_list_item",
+                "type": "numbered_list_item",
                 "bulleted_list_item": {
                     "text": [],
                     # "children": []
@@ -279,6 +338,7 @@ class NotionRender(BaseRenderer):
             return block_template
 
         inner = []
+        tmp_family = {}
         for child in token.children:
             render_result = self.render(child)
             if render_result:
@@ -287,10 +347,13 @@ class NotionRender(BaseRenderer):
                 digest = hashlib.md5(f"{time.time()}".encode('utf-8')).hexdigest()
                 time.sleep(0.1)
                 block_template_ = self.select_list_template(child.children[0])
-                block_template_[block_template_['type']]['text'] = [
-                    {"type": "text", "text": {"content": 'placeholder:' + digest, "link": None}}]
+                block_template_[block_template_['type']]['text'].append(
+                    {"type": "text", "text": {"content": 'placeholder:' + digest, "link": None}})
                 inner.append(block_template_)
-                WatcherClass.DIGEST_TOKEN_MAPPER[digest] = child
+                tmp_family[digest] = child
+
+        if tmp_family and self._up_level == 1:
+            WatcherClass.DIGEST_TOKEN_FAMILY.append(tmp_family)
 
         if self._suppress_ptag_stack[-1]:
             if token.children[0].__class__.__name__ == 'Paragraph':
@@ -413,10 +476,10 @@ if __name__ == "__main__":
         node = markdown_render(f.readlines(), NotionRender)
 
     response = nt.append_block_children('3fe7d4ce-dc7c-44c2-a7cd-f6c6c358d911', node)
-    print(response)
+    # print(response)
 
     sf = SuffixRender()
-    sf.recursion_insert(response)
+    sf.recursion_insert('3fe7d4ce-dc7c-44c2-a7cd-f6c6c358d911')
 
     # nt.update_page(page_id="beee4c9245a7447291c14c9dd83029b4",
     #                # properties=self.generate_character_block(file_path),

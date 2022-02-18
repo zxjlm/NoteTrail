@@ -29,3 +29,12 @@ class MyNotionClient:
     def retrieve_block_children(self, block_id):
         logger.debug("Retrieving block children, block_id: {}".format(block_id))
         return self.client.blocks.children.list(block_id=block_id)
+
+    def delete_all_children(self, block_id, children):
+        logger.debug("Deleting all children, block_id: {}".format(block_id))
+        if block_id and children is None:
+            response = self.client.blocks.children.list(block_id=block_id)
+            children = response['result']
+
+        for child in children:
+            self.client.blocks.delete(block_id=child['id'])
