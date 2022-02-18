@@ -4,7 +4,6 @@ import os
 import pathlib
 import time
 from functools import reduce
-from pprint import pprint
 
 import re
 import sys
@@ -72,7 +71,7 @@ class SuffixRender:
         for child in children:
             if child['type'] in ['numbered_list_item', 'bulleted_list_item']:
                 digest = child[child['type']]['text'][0]['plain_text'].replace("placeholder:", '')
-                new_children.append(self.nr.render(digest_token_family[digest])['paragraph']['children'][0])
+                new_children += self.nr.render(digest_token_family[digest])['paragraph']['children']
             else:
                 new_children.append({
                     'type': child['type'],
@@ -172,18 +171,18 @@ class NotionRender(BaseRenderer):
         }
         return rich_text_template
 
-    def render_emphasis(self, token):
-        template = '<em>{}</em>'
-        return template.format(self.render_inner(token))
+    # def render_emphasis(self, token):
+    #     template = '<em>{}</em>'
+    #     return template.format(self.render_inner(token))
 
-    def render_inline_code(self, token):
-        template = '<code>{}</code>'
-        inner = html.escape(token.children[0].content)
-        return template.format(inner)
-
-    def render_strikethrough(self, token):
-        template = '<del>{}</del>'
-        return template.format(self.render_inner(token))
+    # def render_inline_code(self, token):
+    #     template = '<code>{}</code>'
+    #     inner = html.escape(token.children[0].content)
+    #     return template.format(inner)
+    #
+    # def render_strikethrough(self, token):
+    #     template = '<del>{}</del>'
+    #     return template.format(self.render_inner(token))
 
     def render_image(self, token):
         img_path = os.path.join(os.path.dirname(BookInfo.CURRENT_FILE_PATH), token.src)
@@ -257,13 +256,13 @@ class NotionRender(BaseRenderer):
         }
         return block_template
 
-    def render_quote(self, token):
-        elements = ['<blockquote>']
-        self._suppress_ptag_stack.append(False)
-        elements.extend([self.render(child) for child in token.children])
-        self._suppress_ptag_stack.pop()
-        elements.append('</blockquote>')
-        return '\n'.join(elements)
+    # def render_quote(self, token):
+    #     elements = ['<blockquote>']
+    #     self._suppress_ptag_stack.append(False)
+    #     elements.extend([self.render(child) for child in token.children])
+    #     self._suppress_ptag_stack.pop()
+    #     elements.append('</blockquote>')
+    #     return '\n'.join(elements)
 
     def render_paragraph(self, token):
         if self._suppress_ptag_stack[-1]:
@@ -289,7 +288,6 @@ class NotionRender(BaseRenderer):
         return template.format(attr=attr, inner=inner)
 
     def render_list(self, token):
-        self._up_level += 1
 
         block_template = {
             "type": "paragraph",
@@ -299,16 +297,15 @@ class NotionRender(BaseRenderer):
             }
         }
         self._suppress_ptag_stack.append(not token.loose)
+
         inner = [self.render(child) for child in token.children]
 
-        if self._up_level > 1:
-            self._up_level -= 1
+        if len(self._suppress_ptag_stack) > 2:
             self._suppress_ptag_stack.pop()
             return
 
         block_template[block_template['type']]['children'] = inner
         self._suppress_ptag_stack.pop()
-        self._up_level -= 1
         return block_template
 
     @staticmethod
@@ -352,7 +349,7 @@ class NotionRender(BaseRenderer):
                 inner.append(block_template_)
                 tmp_family[digest] = child
 
-        if tmp_family and self._up_level == 1:
+        if tmp_family and len(self._suppress_ptag_stack) == 2:
             WatcherClass.DIGEST_TOKEN_FAMILY.append(tmp_family)
 
         if self._suppress_ptag_stack[-1]:
@@ -371,41 +368,41 @@ class NotionRender(BaseRenderer):
         # block_template[block_template['type']]['children'] = inner
         return block_template
 
-    def render_table(self, token):
-        # This is actually gross and I wonder if there's a better way to do it.
-        #
-        # The primary difficulty seems to be passing down alignment options to
-        # reach individual cells.
-        template = '<table>\n{inner}</table>'
-        if hasattr(token, 'header'):
-            head_template = '<thead>\n{inner}</thead>\n'
-            head_inner = self.render_table_row(token.header, is_header=True)
-            head_rendered = head_template.format(inner=head_inner)
-        else:
-            head_rendered = ''
-        body_template = '<tbody>\n{inner}</tbody>\n'
-        body_inner = self.render_inner(token)
-        body_rendered = body_template.format(inner=body_inner)
-        return template.format(inner=head_rendered + body_rendered)
-
-    def render_table_row(self, token, is_header=False):
-        template = '<tr>\n{inner}</tr>\n'
-        inner = ''.join([self.render_table_cell(child, is_header)
-                         for child in token.children])
-        return template.format(inner=inner)
-
-    def render_table_cell(self, token, in_header=False):
-        template = '<{tag}{attr}>{inner}</{tag}>\n'
-        tag = 'th' if in_header else 'td'
-        if token.align is None:
-            align = 'left'
-        elif token.align == 0:
-            align = 'center'
-        elif token.align == 1:
-            align = 'right'
-        attr = ' align="{}"'.format(align)
-        inner = self.render_inner(token)
-        return template.format(tag=tag, attr=attr, inner=inner)
+    # def render_table(self, token):
+    #     # This is actually gross and I wonder if there's a better way to do it.
+    #     #
+    #     # The primary difficulty seems to be passing down alignment options to
+    #     # reach individual cells.
+    #     template = '<table>\n{inner}</table>'
+    #     if hasattr(token, 'header'):
+    #         head_template = '<thead>\n{inner}</thead>\n'
+    #         head_inner = self.render_table_row(token.header, is_header=True)
+    #         head_rendered = head_template.format(inner=head_inner)
+    #     else:
+    #         head_rendered = ''
+    #     body_template = '<tbody>\n{inner}</tbody>\n'
+    #     body_inner = self.render_inner(token)
+    #     body_rendered = body_template.format(inner=body_inner)
+    #     return template.format(inner=head_rendered + body_rendered)
+    #
+    # def render_table_row(self, token, is_header=False):
+    #     template = '<tr>\n{inner}</tr>\n'
+    #     inner = ''.join([self.render_table_cell(child, is_header)
+    #                      for child in token.children])
+    #     return template.format(inner=inner)
+    #
+    # def render_table_cell(self, token, in_header=False):
+    #     template = '<{tag}{attr}>{inner}</{tag}>\n'
+    #     tag = 'th' if in_header else 'td'
+    #     if token.align is None:
+    #         align = 'left'
+    #     elif token.align == 0:
+    #         align = 'center'
+    #     elif token.align == 1:
+    #         align = 'right'
+    #     attr = ' align="{}"'.format(align)
+    #     inner = self.render_inner(token)
+    #     return template.format(tag=tag, attr=attr, inner=inner)
 
     @staticmethod
     def render_thematic_break(token):
@@ -434,24 +431,21 @@ class NotionRender(BaseRenderer):
         # return '{}\n'.format(inner) if inner else ''
         return [self.render(child) for child in token.children]
 
-    @staticmethod
-    def escape_html(raw):
-        return html.escape(html.unescape(raw)).replace('&#x27;', "'")
+    # @staticmethod
+    # def escape_html(raw):
+    #     return html.escape(html.unescape(raw)).replace('&#x27;', "'")
 
-    @staticmethod
-    def escape_url(raw):
-        """
-        Escape urls to prevent code injection craziness. (Hopefully.)
-        """
-        return html.escape(quote(html.unescape(raw), safe='/#:()*?=%@+,&;'))
+    # @staticmethod
+    # def escape_url(raw):
+    #     """
+    #     Escape urls to prevent code injection craziness. (Hopefully.)
+    #     """
+    #     return html.escape(quote(html.unescape(raw), safe='/#:()*?=%@+,&;'))
 
     def render_inner(self, token):
         # if token.__class__.__name__ == 'List':
         #     return map(self.render, token.children)
-        try:
-            return ''.join(map(self.render, token.children))
-        except Exception as _e:
-            return list(map(self.render, token.children))
+        return list(map(self.render, token.children))
 
     def render_multi_objects_and_combine(self, tokens):
         pass
