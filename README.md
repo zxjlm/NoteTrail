@@ -24,6 +24,7 @@ Developing...
 - [x] pic management (oss)
 - [ ] page version control
 - [ ] toc
+- [ ] more properties (unread, pinned, ...)
 
 ## Question
 
