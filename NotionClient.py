@@ -1,5 +1,6 @@
 import os
 
+import httpx
 from loguru import logger
 from notion_client import Client
 
@@ -38,3 +39,7 @@ class MyNotionClient:
 
         for child in children:
             self.client.blocks.delete(block_id=child['id'])
+
+
+client_ = httpx.Client(proxies={'http://': 'http://127.0.0.1:7890', 'https://': 'http://127.0.0.1:7890'})
+notion_client = MyNotionClient(client_)

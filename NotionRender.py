@@ -1,5 +1,4 @@
 import hashlib
-import logging
 import os
 import pathlib
 import time
@@ -15,6 +14,7 @@ from mistletoe.block_token import HTMLBlock
 from mistletoe.span_token import HTMLSpan
 from mistletoe.base_renderer import BaseRenderer
 
+from NotionClient import notion_client
 from OSSHandler import oss_handler
 from utils import markdown_render, erase_prefix_string, BookInfo
 
@@ -22,12 +22,6 @@ if sys.version_info < (3, 4):
     from mistletoe import _html as html
 else:
     import html
-
-from NotionClient import MyNotionClient
-import httpx
-
-client_ = httpx.Client(proxies={'http://': 'http://127.0.0.1:7890', 'https://': 'http://127.0.0.1:7890'})
-nt = MyNotionClient(client_)
 
 
 class WatcherClass:
@@ -96,7 +90,7 @@ class SuffixRender:
     def recursion_build_block_id_mapper(self, resp, parent=None):
         for idx, obj in enumerate(resp['results']):
             if obj['has_children']:
-                resp_ = nt.retrieve_block_children(obj['id'])
+                resp_ = notion_client.retrieve_block_children(obj['id'])
                 self.recursion_build_block_id_mapper(resp_, parent=obj['id'])
             else:
                 if obj['type'] in ['numbered_list_item', 'bulleted_list_item']:
@@ -105,7 +99,7 @@ class SuffixRender:
     def recursion_insert(self, block_id):
 
         while WatcherClass.DIGEST_TOKEN_FAMILY:
-            resp = nt.retrieve_block_children(block_id)
+            resp = notion_client.retrieve_block_children(block_id)
             # self._object_digest_mapper = {}
             self.build_digest_index()
             self.recursion_build_block_id_mapper(resp)
@@ -117,9 +111,9 @@ class SuffixRender:
             obj = self._object_digest_mapper[cluster_digest]
 
             children = self.rebuild_family(digest_token_family, children=obj['children'])
-            nt.delete_all_children(block_id=obj['parent'], children=obj['children'])
+            notion_client.delete_all_children(block_id=obj['parent'], children=obj['children'])
             # children = self.rebuild_children(token, children=obj['children'])
-            nt.append_block_children(block_id=obj['parent'], children=children)
+            resp_append_children = notion_client.append_block_children(block_id=obj['parent'], children=children)
             block_id = obj['parent']
 
 
@@ -256,13 +250,18 @@ class NotionRender(BaseRenderer):
         }
         return block_template
 
-    # def render_quote(self, token):
-    #     elements = ['<blockquote>']
-    #     self._suppress_ptag_stack.append(False)
-    #     elements.extend([self.render(child) for child in token.children])
-    #     self._suppress_ptag_stack.pop()
-    #     elements.append('</blockquote>')
-    #     return '\n'.join(elements)
+    def render_quote(self, token):
+        return {
+            "type": "quote",
+            "quote": {
+                "text": [{
+                    "type": "text",
+                    "text": {
+                        "content": token.content,
+                    },
+                }],
+            }
+        }
 
     def render_paragraph(self, token):
         if self._suppress_ptag_stack[-1]:
@@ -321,7 +320,7 @@ class NotionRender(BaseRenderer):
         else:
             block_template = {
                 "type": "numbered_list_item",
-                "bulleted_list_item": {
+                "numbered_list_item": {
                     "text": [],
                     # "children": []
                 }
@@ -469,12 +468,12 @@ if __name__ == "__main__":
     with open(md_path_) as f:
         node = markdown_render(f.readlines(), NotionRender)
 
-    response = nt.append_block_children('3fe7d4ce-dc7c-44c2-a7cd-f6c6c358d911', node)
+    response = notion_client.append_block_children('3fe7d4ce-dc7c-44c2-a7cd-f6c6c358d911', node)
     # print(response)
 
     sf = SuffixRender()
     sf.recursion_insert('3fe7d4ce-dc7c-44c2-a7cd-f6c6c358d911')
 
-    # nt.update_page(page_id="beee4c9245a7447291c14c9dd83029b4",
+    # notion_client.update_page(page_id="beee4c9245a7447291c14c9dd83029b4",
     #                # properties=self.generate_character_block(file_path),
     #                children=node)

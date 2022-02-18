@@ -16,10 +16,9 @@ from loguru import logger
 from BlockRender import BlockRender
 from CharacterScanner import CharacterScanner
 
-from NotionClient import MyNotionClient
-from NotionRender import NotionRender
+from NotionClient import notion_client
+from NotionRender import NotionRender, SuffixRender
 from utils import markdown_render, BookInfo
-
 
 
 class BookProcessor:
@@ -28,7 +27,6 @@ class BookProcessor:
             raise Exception('database or page must have one')
         self.database_id = database_id
         self.page_id = page_id
-        self.notion = MyNotionClient(client)
         self.block_render = BlockRender()
 
     def generate_character_block(self, child, raw_title=None):
@@ -55,15 +53,15 @@ class BookProcessor:
             # create a readme page
             if file_path.lower() == 'readme.md':
                 title = files_mapper[file_path][:-10]
-                response = self.notion.create_page(parent={"page_id": root_page_id},
-                                                   properties=self.generate_character_block(title),
-                                                   children=self.render_file(files_mapper[file_path]))
+                response = notion_client.create_page(parent={"page_id": root_page_id},
+                                                     properties=self.generate_character_block(title),
+                                                     children=self.render_file(files_mapper[file_path]))
                 dir_path['blocks'].remove(files_mapper[file_path])
                 break
         else:
             # create a blank page
-            response = self.notion.create_page(parent={"page_id": root_page_id},
-                                               properties=self.generate_character_block(dir_path['path']))
+            response = notion_client.create_page(parent={"page_id": root_page_id},
+                                                 properties=self.generate_character_block(dir_path['path']))
 
         for block in dir_path['blocks']:
             self.file_processor(block, response['id'])
@@ -72,9 +70,11 @@ class BookProcessor:
 
     def file_processor(self, file_path, page_id):
         logger.info('----------------> Processing file: {}'.format(file_path))
-        response = self.notion.create_page(parent={"page_id": page_id},
-                                           properties=self.generate_character_block(file_path),
-                                           children=self.render_file(file_path))
+        response = notion_client.create_page(parent={"page_id": page_id},
+                                             properties=self.generate_character_block(file_path),
+                                             children=self.render_file(file_path))
+        sf = SuffixRender()
+        sf.recursion_insert(response['id'])
         return response
 
     def main(self, book_url=None):
@@ -92,10 +92,10 @@ class BookProcessor:
                                    ]
                                    },
                           }
-            response = self.notion.create_page(parent={"database_id": self.database_id}, properties=properties)
+            response = notion_client.create_page(parent={"database_id": self.database_id}, properties=properties)
             root_page_id = response['id']
         else:
-            # response = self.notion.blocks.children.append(parent=self.page_id)
+            # response = notion_client.blocks.children.append(parent=self.page_id)
             print('page as root, todo')
             return
 
