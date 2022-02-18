@@ -7,7 +7,6 @@ from functools import reduce
 import re
 import sys
 from itertools import chain
-from urllib.parse import quote
 
 from loguru import logger
 from mistletoe.block_token import HTMLBlock
@@ -16,7 +15,7 @@ from mistletoe.base_renderer import BaseRenderer
 
 from NotionClient import notion_client
 from OSSHandler import oss_handler
-from utils import markdown_render, erase_prefix_string, BookInfo
+from utils import markdown_render, erase_prefix_string, BookInfo, long_content_split_patch
 
 if sys.version_info < (3, 4):
     from mistletoe import _html as html
@@ -169,11 +168,19 @@ class NotionRender(BaseRenderer):
     #     template = '<em>{}</em>'
     #     return template.format(self.render_inner(token))
 
-    # def render_inline_code(self, token):
-    #     template = '<code>{}</code>'
-    #     inner = html.escape(token.children[0].content)
-    #     return template.format(inner)
-    #
+    def render_inline_code(self, token):
+        rich_text_template = {
+            "type": "text",
+            "text": {
+                "content": token.children[0].content,
+                "link": None,
+            },
+            "annotations": {
+                "code": True
+            },
+        }
+        return rich_text_template
+
     # def render_strikethrough(self, token):
     #     template = '<del>{}</del>'
     #     return template.format(self.render_inner(token))
@@ -278,13 +285,31 @@ class NotionRender(BaseRenderer):
         return block_template
 
     def render_block_code(self, token):
-        template = '<pre><code{attr}>{inner}</code></pre>'
-        if token.language:
-            attr = ' class="{}"'.format('language-{}'.format(self.escape_html(token.language)))
+        code_template = {
+            "type": "code",
+            "code": {
+                "text": [{
+                    "type": "text",
+                    "text": {
+                        "content": ""
+                    }
+                }],
+                "language": token.language
+            }
+        }
+        code = token.children[0].content
+        if len(code) <= 2000:
+            code_template["code"]["text"][0]["text"]["content"] = code
         else:
-            attr = ''
-        inner = html.escape(token.children[0].content)
-        return template.format(attr=attr, inner=inner)
+            logger.warning("code too long, will be split")
+            content_list = long_content_split_patch(code)
+            code_template["code"]["text"] = [{
+                "type": "text",
+                "text": {
+                    "content": content
+                }
+            } for content in content_list]
+        return code_template
 
     def render_list(self, token):
 
@@ -430,9 +455,9 @@ class NotionRender(BaseRenderer):
         # return '{}\n'.format(inner) if inner else ''
         return [self.render(child) for child in token.children]
 
-    # @staticmethod
-    # def escape_html(raw):
-    #     return html.escape(html.unescape(raw)).replace('&#x27;', "'")
+    @staticmethod
+    def escape_html(raw):
+        return html.escape(html.unescape(raw)).replace('&#x27;', "'")
 
     # @staticmethod
     # def escape_url(raw):

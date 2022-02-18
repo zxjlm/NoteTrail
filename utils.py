@@ -49,3 +49,13 @@ def erase_prefix_string(string, prefix):
     while cnt < len(prefix) and string[cnt] == prefix[cnt]:
         cnt += 1
     return string[cnt:]
+
+
+def long_content_split_patch(content, max_length=2000):
+    """
+    Splits the content into multiple parts, each part is less than max_length.
+    :param content:
+    :param max_length:
+    :return:
+    """
+    return [content[foo:foo+max_length] for foo in range(0, len(content), max_length)]
