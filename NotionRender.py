@@ -258,13 +258,14 @@ class NotionRender(BaseRenderer):
         return block_template
 
     def render_quote(self, token):
+        # todo: multiple text (rich text)
         return {
             "type": "quote",
             "quote": {
                 "text": [{
                     "type": "text",
                     "text": {
-                        "content": token.content,
+                        "content": token.children[0].content,
                     },
                 }],
             }
@@ -488,7 +489,7 @@ if __name__ == "__main__":
     # body.children[49].paragraph.children[0].bulleted_list_item.children[1].paragraph.children
     BookInfo.BOOK_PATH = "/home/harumonia/projects/docs/note-book2-master/docs/ddd/"
     BookInfo.BOOK_NAME = 'ddd'
-    md_path_ = '/home/harumonia/projects/docs/test.md'
+    md_path_ = '/home/harumonia/projects/docs/HowToCook/牛奶燕麦.md'
     BookInfo.CURRENT_FILE_PATH = md_path_
     with open(md_path_) as f:
         node = markdown_render(f.readlines(), NotionRender)

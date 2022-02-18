@@ -114,7 +114,7 @@ class BookProcessor:
 
 if __name__ == '__main__':
     client_ = httpx.Client(proxies={'http://': 'http://127.0.0.1:7890', 'https://': 'http://127.0.0.1:7890'})
-    BookInfo.BOOK_PATH = '/home/harumonia/projects/docs/note-book2-master/docs/ddd/'
-    BookInfo.BOOK_NAME = 'ddd'
+    BookInfo.BOOK_PATH = '/home/harumonia/projects/docs/HowToCook'
+    BookInfo.BOOK_NAME = 'HowToCook'
     p = BookProcessor(database_id='d0e931a36b43405996d118cf71957f6d', client=client_)
     p.main()
