@@ -58,4 +58,4 @@ def long_content_split_patch(content, max_length=2000):
     :param max_length:
     :return:
     """
-    return [content[foo:foo+max_length] for foo in range(0, len(content), max_length)]
+    return [content[foo:foo + max_length] for foo in range(0, len(content), max_length)]

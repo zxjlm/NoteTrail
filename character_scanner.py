@@ -4,7 +4,7 @@
 @contact: zxjlm233@gmail.com
 @software: Pycharm
 @homepage: https://harumonia.moe/
-@file: CharacterScanner.py
+@file: character_scanner.py
 @time: 2021/10/24 4:05 下午
 @desc: 扫描目录下的md文件
 """

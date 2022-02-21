@@ -4,7 +4,7 @@
 @contact: zxjlm233@gmail.com
 @software: Pycharm
 @homepage: https://harumonia.moe/
-@file: BookProcessor.py
+@file: book_processor.py
 @time: 2021/10/24 4:27 下午
 @desc:
 """
@@ -13,11 +13,11 @@ import os
 import httpx
 from loguru import logger
 
-from BlockRender import BlockRender
-from CharacterScanner import CharacterScanner
+from block_render import BlockRender
+from character_scanner import CharacterScanner
 
-from NotionClient import notion_client
-from NotionRender import NotionRender, SuffixRender
+from notion_client import notion_client
+from notion_render import NotionRender, SuffixRender
 from utils import markdown_render, BookInfo
 
 

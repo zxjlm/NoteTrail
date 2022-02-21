@@ -15,7 +15,7 @@ import mistletoe
 from bs4 import BeautifulSoup
 from notion_client import Client
 
-from BlockRender import BlockRender
+from block_render import BlockRender
 
 
 if __name__ == '__main__':
