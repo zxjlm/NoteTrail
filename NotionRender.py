@@ -186,16 +186,19 @@ class NotionRender(BaseRenderer):
     #     return template.format(self.render_inner(token))
 
     def render_image(self, token):
-        img_path = os.path.join(os.path.dirname(BookInfo.CURRENT_FILE_PATH), token.src)
-        img_path = pathlib.Path(img_path).__str__()
-        storage_path = os.path.join(BookInfo.BOOK_NAME, erase_prefix_string(img_path, BookInfo.BOOK_PATH))
-        oss_url = oss_handler.upload_pic(img_path, storage_path)
+        if token.src.startswith('http'):
+            url = token.src
+        else:
+            img_path = os.path.join(os.path.dirname(BookInfo.CURRENT_FILE_PATH), token.src)
+            img_path = pathlib.Path(img_path).__str__()
+            storage_path = os.path.join(BookInfo.BOOK_NAME, erase_prefix_string(img_path, BookInfo.BOOK_PATH))
+            url = oss_handler.upload_pic(img_path, storage_path)
         block_template = {
             "type": "image",
             "image": {
                 "type": "external",
                 "external": {
-                    "url": oss_url
+                    "url": url
                 }
             }
         }
@@ -258,16 +261,14 @@ class NotionRender(BaseRenderer):
         return block_template
 
     def render_quote(self, token):
-        # todo: multiple text (rich text)
+        # notion quote only support text
+        self._suppress_ptag_stack.append(True)
+        content = [bar for foo in self.render_inner(token) for bar in foo]
+        self._suppress_ptag_stack.pop()
         return {
             "type": "quote",
             "quote": {
-                "text": [{
-                    "type": "text",
-                    "text": {
-                        "content": token.children[0].content,
-                    },
-                }],
+                "text": content,
             }
         }
 
@@ -489,16 +490,16 @@ if __name__ == "__main__":
     # body.children[49].paragraph.children[0].bulleted_list_item.children[1].paragraph.children
     BookInfo.BOOK_PATH = "/home/harumonia/projects/docs/note-book2-master/docs/ddd/"
     BookInfo.BOOK_NAME = 'ddd'
-    md_path_ = '/home/harumonia/projects/docs/HowToCook/牛奶燕麦.md'
+    md_path_ = '/home/harumonia/projects/docs/HowToCook/README.md'
     BookInfo.CURRENT_FILE_PATH = md_path_
     with open(md_path_) as f:
         node = markdown_render(f.readlines(), NotionRender)
 
-    response = notion_client.append_block_children('3fe7d4ce-dc7c-44c2-a7cd-f6c6c358d911', node)
+    response = notion_client.append_block_children('fd46e779-1e95-4e66-bd63-6720e1690db1', node)
     # print(response)
 
     sf = SuffixRender()
-    sf.recursion_insert('3fe7d4ce-dc7c-44c2-a7cd-f6c6c358d911')
+    sf.recursion_insert('fd46e779-1e95-4e66-bd63-6720e1690db1')
 
     # notion_client.update_page(page_id="beee4c9245a7447291c14c9dd83029b4",
     #                # properties=self.generate_character_block(file_path),
