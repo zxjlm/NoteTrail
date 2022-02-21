@@ -6,7 +6,7 @@
 @homepage: https://harumonia.moe/
 @file: block.py
 @time: 2021/10/24 10:49 上午
-@desc:
+@desc: deprecated file
 """
 import re
 
@@ -37,6 +37,7 @@ def list_block_wrap(func):
 
 
 class BlockRender:
+    # deprecated
     def convert_p_elem(self, p_node, children=None):
         return {
             "type": "paragraph",
