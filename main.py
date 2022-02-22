@@ -8,39 +8,71 @@
 @time: 2021/10/23 10:52 下午
 @desc:
 """
+import platform
+from argparse import ArgumentParser, RawDescriptionHelpFormatter
 
-import os
+from utils import check_runtime, check_proxy_format
 
-import mistletoe
-from bs4 import BeautifulSoup
-from notion_client import Client
+__version__ = "v0.1"
+__module_name__ = "???"
 
-from block_render import BlockRender
+
+def main():
+    """
+        Just main
+        Returns:
+        """
+
+    version_string = (
+        f"%(prog)s {__version__} \n "
+        f"Python:  {platform.python_version()} \n"
+    )
+
+    parser = ArgumentParser(
+        formatter_class=RawDescriptionHelpFormatter,
+        description=f"{__module_name__} " f"(Version {__version__})",
+    )
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=version_string,
+        help="Display version information and dependencies.",
+    )
+    parser.add_argument(
+        "--verbose",
+        "-v",
+        "-d",
+        "--debug",
+        action="store_true",
+        dest="verbose",
+        default=False,
+        help="Display extra debugging information and metrics.",
+    )
+    parser.add_argument(
+        "--proxy",
+        default="127.0.0.1:7890",
+        # action="store_const",
+        # const="127.0.0.1:7890",
+        dest="proxy",
+        help="Use proxy. Default is 127.0.0.1:7890.",
+    )
+
+    args = parser.parse_args()
+
+    if not check_runtime():
+        print("Please set environment variable")
+        exit(1)
+
+    if args.proxy:
+        if not check_proxy_format(args.proxy):
+            print(f"Invalid proxy format: {args.proxy}")
+            exit(1)
+        import my_notion_client
+        import httpx
+        client_ = httpx.Client(proxies={'http://': f'http://{args.proxy}', 'https://': f'http://{args.proxy}'},
+                               timeout=30)
+        my_notion_client.notion_client = my_notion_client.MyNotionClient(client_)
 
 
 if __name__ == '__main__':
-
-    auth_token = os.environ.get("NOTION_TOKEN")
-    if not auth_token:
-        print("Please set NOTION_TOKEN environment variable")
-        exit(1)
-
-    notion = Client(auth=auth_token)
-
-    with open('/Users/zhangxinjian/Projects/PythonProject/mylearnlab/jupyter/myExercises/readme.md') as f:
-        node = mistletoe.markdown(f.readlines())
-    p = BlockRender()
-    soup = BeautifulSoup(node)
-    ret = []
-    for children in soup.contents:
-        if children.name:
-            cov = getattr(p, f'convert_{children.name}_elem')(children)
-            if cov:
-                if isinstance(cov, list):
-                    ret += cov
-                else:
-                    ret.append(cov)
-            else:
-                print(f'{children} not found')
-    notion.blocks.children.append("3543a8a4b8d1464d9e91f04cf864b84c", children=ret)
-    # pprint(ret)
+    main()

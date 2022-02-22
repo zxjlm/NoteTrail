@@ -1,4 +1,11 @@
+import os
+import re
+
 from mistletoe import Document
+
+
+class RuntimeConfig:
+    ...
 
 
 class BookInfo:
@@ -59,3 +66,23 @@ def long_content_split_patch(content, max_length=2000):
     :return:
     """
     return [content[foo:foo + max_length] for foo in range(0, len(content), max_length)]
+
+
+def check_runtime():
+    """
+    检查是否满足运行条件
+    :return:
+    """
+    auth_token = os.environ.get("NOTION_TOKEN")
+
+    # check oss config
+    ak = os.environ.get("ALI_OSS_AK")
+    sk = os.environ.get("ALI_OSS_SK")
+
+    return auth_token and ak and sk
+
+
+def check_proxy_format(proxy):
+    if re.match(r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}:\d+', proxy):
+        return True
+    return False

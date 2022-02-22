@@ -16,7 +16,7 @@ from loguru import logger
 from block_render import BlockRender
 from character_scanner import CharacterScanner
 
-from notion_client import notion_client
+from my_notion_client import notion_client
 from notion_render import NotionRender, SuffixRender
 from utils import markdown_render, BookInfo
 

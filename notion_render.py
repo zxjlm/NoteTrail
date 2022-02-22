@@ -13,7 +13,7 @@ from mistletoe.block_token import HTMLBlock
 from mistletoe.span_token import HTMLSpan
 from mistletoe.base_renderer import BaseRenderer
 
-from notion_client import notion_client
+from my_notion_client import notion_client
 from oss_handler import oss_handler
 from utils import markdown_render, erase_prefix_string, BookInfo, long_content_split_patch
 
