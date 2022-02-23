@@ -16,7 +16,7 @@ Developing...
   - [x] ul
   - [x] ol
   - [x] headers(h1\h2\h3...)
-  - [ ] rich-text
+  - [ ] rich-text (ing)
   - [x] picture
 - [ ] add logger
 - [ ] add sqlite to store notion-db __ ebook map relation, for update
@@ -25,10 +25,10 @@ Developing...
 - [ ] page version control
 - [ ] toc
 - [ ] more properties (unread, pinned, ...)
+- [ ] block render class and validate block
+- [ ] catch failed block render and log
 
 ## Question
 
-- list block not support nested.
-  use queue?
 - how to handle page version?
   use page properties?
