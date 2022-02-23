@@ -277,7 +277,7 @@ class NotionRender(BaseRenderer):
             return self.render_inner(token)
         if token.children.__len__() == 1 and token.children[0].__class__.__name__ == 'Image':
             return self.render_inner(token)[0]
-        inner = self.render_inner(token)
+        inner = [foo for foo in self.render_inner(token) if foo['text']['content']]
         block_template = {
             "type": "paragraph",
             "paragraph": {

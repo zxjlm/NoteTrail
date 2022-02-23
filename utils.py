@@ -12,6 +12,7 @@ class BookInfo:
     BOOK_NAME = ""
     BOOK_PATH = ""
     CURRENT_FILE_PATH = ""
+    IS_HEXO = True
 
 
 class Bcolors:

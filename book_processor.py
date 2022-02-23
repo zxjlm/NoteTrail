@@ -10,7 +10,6 @@
 """
 import os
 
-import httpx
 from loguru import logger
 
 from block_render import BlockRender
@@ -22,16 +21,16 @@ from utils import markdown_render, BookInfo
 
 
 class BookProcessor:
-    def __init__(self, database_id=None, page_id=None, client=None):
+    def __init__(self, database_id=None, page_id=None):
         if (database_id or page_id) is None:
             raise Exception('database or page must have one')
         self.database_id = database_id
         self.page_id = page_id
         self.block_render = BlockRender()
 
-    def generate_character_block(self, child, raw_title=None):
+    def generate_title_property(self, file_path, raw_title=None):
         if not raw_title:
-            raw_title = os.path.basename(child).replace('.md', '')
+            raw_title = os.path.basename(file_path).replace('.md', '')
         return {
             'title': [
                 {
@@ -39,6 +38,11 @@ class BookProcessor:
                     'text': {'content': raw_title},
                 }
             ]
+        }
+
+    def generate_properties(self, file_path, raw_title=None):
+        return {
+            'properties': self.generate_title_property(file_path, raw_title)
         }
 
     def dir_processor(self, dir_path: dict, root_page_id: str):
@@ -54,14 +58,14 @@ class BookProcessor:
             if file_path.lower() == 'readme.md':
                 title = files_mapper[file_path][:-10]
                 response = notion_client.create_page(parent={"page_id": root_page_id},
-                                                     properties=self.generate_character_block(title),
+                                                     properties=self.generate_properties(title),
                                                      children=self.render_file(files_mapper[file_path]))
                 dir_path['blocks'].remove(files_mapper[file_path])
                 break
         else:
             # create a blank page
             response = notion_client.create_page(parent={"page_id": root_page_id},
-                                                 properties=self.generate_character_block(dir_path['path']))
+                                                 properties=self.generate_properties(dir_path['path']))
 
         for block in dir_path['blocks']:
             self.file_processor(block, response['id'])
@@ -71,7 +75,7 @@ class BookProcessor:
     def file_processor(self, file_path, page_id):
         logger.info('----------------> Processing file: {}'.format(file_path))
         response = notion_client.create_page(parent={"page_id": page_id},
-                                             properties=self.generate_character_block(file_path),
+                                             properties=self.generate_properties(file_path),
                                              children=self.render_file(file_path))
         sf = SuffixRender()
         sf.recursion_insert(response['id'])
@@ -113,8 +117,7 @@ class BookProcessor:
 
 
 if __name__ == '__main__':
-    client_ = httpx.Client(proxies={'http://': 'http://127.0.0.1:7890', 'https://': 'http://127.0.0.1:7890'})
-    BookInfo.BOOK_PATH = '/home/harumonia/projects/docs/HowToCook'
-    BookInfo.BOOK_NAME = 'HowToCook'
-    p = BookProcessor(database_id='d0e931a36b43405996d118cf71957f6d', client=client_)
+    BookInfo.BOOK_PATH = '/home/harumonia/projects/docs/tmp'
+    BookInfo.BOOK_NAME = 'Blog'
+    p = BookProcessor(database_id='d0e931a36b43405996d118cf71957f6d')
     p.main()
