@@ -4,33 +4,33 @@
 @contact: zxjlm233@gmail.com
 @software: Pycharm
 @homepage: https://harumonia.moe/
-@file: BookProcessor.py
+@file: book_processor.py
 @time: 2021/10/24 4:27 下午
 @desc:
 """
 import os
 
-import httpx
+from loguru import logger
 
-from BlockRender import BlockRender
-from CharacterScanner import CharacterScanner
-from notion_client import Client
+from block_render import BlockRender
+from character_scanner import CharacterScanner
 
-from NotionClient import MyNotionClient
+from my_notion_client import notion_client
+from notion_render import NotionRender, SuffixRender
+from utils import markdown_render, BookInfo
 
 
 class BookProcessor:
-    def __init__(self, database_id=None, page_id=None, client=None):
+    def __init__(self, database_id=None, page_id=None):
         if (database_id or page_id) is None:
             raise Exception('database or page must have one')
         self.database_id = database_id
         self.page_id = page_id
-        self.notion = MyNotionClient(client)
         self.block_render = BlockRender()
 
-    def generate_character_block(self, child, raw_title=None):
+    def generate_title_property(self, file_path, raw_title=None):
         if not raw_title:
-            raw_title = os.path.basename(child).replace('.md', '')
+            raw_title = os.path.basename(file_path).replace('.md', '')
         return {
             'title': [
                 {
@@ -38,6 +38,11 @@ class BookProcessor:
                     'text': {'content': raw_title},
                 }
             ]
+        }
+
+    def generate_properties(self, file_path, raw_title=None):
+        return {
+            'properties': self.generate_title_property(file_path, raw_title)
         }
 
     def dir_processor(self, dir_path: dict, root_page_id: str):
@@ -52,15 +57,15 @@ class BookProcessor:
             # create a readme page
             if file_path.lower() == 'readme.md':
                 title = files_mapper[file_path][:-10]
-                response = self.notion.create_page(parent={"page_id": root_page_id},
-                                                   properties=self.generate_character_block(title),
-                                                   children=self.block_render.main(files_mapper[file_path]))
+                response = notion_client.create_page(parent={"page_id": root_page_id},
+                                                     properties=self.generate_properties(title),
+                                                     children=self.render_file(files_mapper[file_path]))
                 dir_path['blocks'].remove(files_mapper[file_path])
                 break
         else:
             # create a blank page
-            response = self.notion.create_page(parent={"page_id": root_page_id},
-                                               properties=self.generate_character_block(dir_path['path']))
+            response = notion_client.create_page(parent={"page_id": root_page_id},
+                                                 properties=self.generate_properties(dir_path['path']))
 
         for block in dir_path['blocks']:
             self.file_processor(block, response['id'])
@@ -68,13 +73,16 @@ class BookProcessor:
             self.dir_processor(children, response['id'])
 
     def file_processor(self, file_path, page_id):
-        response = self.notion.create_page(parent={"page_id": page_id},
-                                           properties=self.generate_character_block(file_path),
-                                           children=self.block_render.main(file_path))
+        logger.info('----------------> Processing file: {}'.format(file_path))
+        response = notion_client.create_page(parent={"page_id": page_id},
+                                             properties=self.generate_properties(file_path),
+                                             children=self.render_file(file_path))
+        sf = SuffixRender()
+        sf.recursion_insert(response['id'])
         return response
 
-    def main(self, path, book_name, book_url=None):
-        path_dict = CharacterScanner(path).scanner()
+    def main(self, book_url=None):
+        path_dict = CharacterScanner().scanner()
         CharacterScanner.check_path(path_dict)
 
         if self.database_id:
@@ -83,15 +91,15 @@ class BookProcessor:
                                    'title': [
                                        {
                                            'type': 'text',
-                                           'text': {'content': book_name, 'link': book_url},
+                                           'text': {'content': BookInfo.BOOK_NAME, 'link': book_url},
                                        }
                                    ]
                                    },
                           }
-            response = self.notion.create_page(parent={"database_id": self.database_id}, properties=properties)
+            response = notion_client.create_page(parent={"database_id": self.database_id}, properties=properties)
             root_page_id = response['id']
         else:
-            # response = self.notion.blocks.children.append(parent=self.page_id)
+            # response = notion_client.blocks.children.append(parent=self.page_id)
             print('page as root, todo')
             return
 
@@ -101,8 +109,15 @@ class BookProcessor:
         for child in path_dict['children']:
             self.dir_processor(child, root_page_id)
 
+    def render_file(self, md_path):
+        BookInfo.CURRENT_FILE_PATH = md_path
+        with open(md_path) as f:
+            render_result = markdown_render(f.readlines(), NotionRender)
+        return render_result
+
 
 if __name__ == '__main__':
-    client_ = httpx.Client(proxies={'http://': 'http://127.0.0.1:7890', 'https://': 'http://127.0.0.1:7890'})
-    p = BookProcessor(database_id='d0e931a36b43405996d118cf71957f6d', client=client_)
-    p.main('/home/harumonia/projects/docs/d2l-zh-t', 'd2l-zh-t')
+    BookInfo.BOOK_PATH = '/home/harumonia/projects/docs/tmp'
+    BookInfo.BOOK_NAME = 'Blog'
+    p = BookProcessor(database_id='d0e931a36b43405996d118cf71957f6d')
+    p.main()

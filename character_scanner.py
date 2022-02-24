@@ -4,14 +4,14 @@
 @contact: zxjlm233@gmail.com
 @software: Pycharm
 @homepage: https://harumonia.moe/
-@file: CharacterScanner.py
+@file: character_scanner.py
 @time: 2021/10/24 4:05 下午
 @desc: 扫描目录下的md文件
 """
 import glob
 import os
 
-from utils import Bcolors
+from utils import Bcolors, BookInfo
 
 
 class CharacterScanner:
@@ -23,8 +23,8 @@ class CharacterScanner:
     目前只支持 markdown
     """
 
-    def __init__(self, basic_path):
-        self.basic_path = basic_path
+    # def __init__(self):
+    #     self.basic_path = basic_path
 
     def recursion_scanner(self, current_path) -> dict:
         """
@@ -81,7 +81,7 @@ class CharacterScanner:
         指定扫描任务的根目录
         :return:
         """
-        return self.recursion_scanner(self.basic_path)
+        return self.recursion_scanner(BookInfo.BOOK_PATH)
 
     @staticmethod
     def check_path(path_dict):
@@ -91,7 +91,8 @@ class CharacterScanner:
 
 
 if __name__ == '__main__':
+    BookInfo.BOOK_PATH = '/home/harumonia/projects/docs/w3-goto-world'
     import pprint
-    p = CharacterScanner('/home/harumonia/projects/docs/w3-goto-world')
+    p = CharacterScanner()
     # pprint.pprint(p.scanner())
     p.plain_recursion_scanner('/home/harumonia/projects/docs/w3-goto-world')
