@@ -31,6 +31,10 @@ class MyNotionClient:
         logger.debug("Retrieving block children, block_id: {}".format(block_id))
         return self.client.blocks.children.list(block_id=block_id)
 
+    def update_database_properties(self, database_id, properties):
+        logger.debug("Updating database properties, database_id: {}, properties: {}".format(database_id, properties))
+        return self.client.databases.update(database_id=database_id, properties=properties)
+
     def delete_all_children(self, block_id, children):
         logger.debug("Deleting all children, block_id: {}".format(block_id))
         if block_id and children is None:

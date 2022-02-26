@@ -15,7 +15,7 @@ from mistletoe.base_renderer import BaseRenderer
 
 from my_notion_client import notion_client
 from oss_handler import oss_handler
-from utils import markdown_render, erase_prefix_string, BookInfo, long_content_split_patch
+from utils import markdown_render, erase_prefix_string, BookInfo, long_content_split_patch, validate_language
 
 if sys.version_info < (3, 4):
     from mistletoe import _html as html
@@ -234,7 +234,7 @@ class NotionRender(BaseRenderer):
         return template.format(target=target, inner=inner)
 
     def render_escape_sequence(self, token):
-        return self.render_inner(token)
+        return {'type': 'text', 'text': {'content': token.children[0].content, 'link': None}}
 
     def render_raw_text(self, token):
         return {
@@ -277,16 +277,37 @@ class NotionRender(BaseRenderer):
             return self.render_inner(token)
         if token.children.__len__() == 1 and token.children[0].__class__.__name__ == 'Image':
             return self.render_inner(token)[0]
-        inner = [foo for foo in self.render_inner(token) if foo['text']['content']]
+
         block_template = {
             "type": "paragraph",
             "paragraph": {
-                "text": inner,
+                "text": [],
             }
         }
+        # inner = [foo for foo in self.render_inner(token) if foo['text']['content']]
+        inner = []
+        children = []
+        for foo in self.render_inner(token):
+            if 'text' not in foo:
+                if 'image' in foo:
+                    children.append(foo)
+                else:
+                    logger.warning('paragraph: {}'.format(foo))
+            elif foo['text']['content']:
+                inner.append(foo)
+
+        block_template['paragraph']['text'] = inner
+        if children:
+            block_template['paragraph']['children'] = children
         return block_template
 
     def render_block_code(self, token):
+        language = token.language
+        if language == 'plain_text':
+            language = 'plain text'
+        if not validate_language(language):
+            logger.warning('invalid language: {}'.format(language))
+            language = 'plain text'
         code_template = {
             "type": "code",
             "code": {
@@ -296,7 +317,7 @@ class NotionRender(BaseRenderer):
                         "content": ""
                     }
                 }],
-                "language": token.language
+                "language": language
             }
         }
         code = token.children[0].content

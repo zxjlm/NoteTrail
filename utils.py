@@ -1,5 +1,6 @@
 import os
 import re
+import hashlib
 
 from mistletoe import Document
 
@@ -87,3 +88,9 @@ def check_proxy_format(proxy):
     if re.match(r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}:\d+', proxy):
         return True
     return False
+
+
+def generate_md5_from_text(text):
+    m = hashlib.md5()
+    m.update(text.encode("utf-8"))
+    return m.hexdigest()
