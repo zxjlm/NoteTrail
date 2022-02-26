@@ -1,18 +1,35 @@
 import os
+import re
 
 import oss2
 from loguru import logger
 
 
 class OSSHandler:
-    BASIC_URL = 'https://notion-oss-bucket.oss-cn-shanghai.aliyuncs.com/'
+    BASIC_URL = ''
 
     def __init__(self):
         ak = os.environ.get('ALI_OSS_AK')
         sk = os.environ.get('ALI_OSS_SK')
-        auth = oss2.Auth(ak, sk)
-        self.bucket = oss2.Bucket(auth, 'https://oss-cn-shanghai.aliyuncs.com', 'notion-oss-bucket')
-        self.get_storage_desc()
+        bucket_url = os.environ.get('ALI_BUCKET')
+        if ak and sk and bucket_url:
+            'https://notion-oss-bucket.oss-cn-shanghai.aliyuncs.com/'
+            self.BASIC_URL = bucket_url
+            bucket_name, endpoint = self._split_url()
+            auth = oss2.Auth(ak, sk)
+            self.bucket = oss2.Bucket(auth, f'{endpoint}', bucket_name)
+            self.get_storage_desc()
+        else:
+            logger.warning('failed to start ali oss service')
+            self.bucket = None
+
+    def _split_url(self):
+        re_ = re.search(r'https://(.*?)\.(oss-.*?\.aliyuncs.com)/?', self.BASIC_URL)
+        if re_:
+            bucket_name, endpoint = re_.groups()
+        else:
+            raise Exception('failed to split bucket url.')
+        return bucket_name, endpoint
 
     def get_storage_desc(self):
         bucket_stat = self.bucket.get_bucket_stat()
@@ -24,7 +41,6 @@ class OSSHandler:
         return self.bucket.object_exists(name)
 
     def upload_pic(self, path, filename):
-
         if self.validate_pic(filename):
             logger.info('{} already exists'.format(filename))
             return self.BASIC_URL + filename

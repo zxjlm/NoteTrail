@@ -211,7 +211,10 @@ class NotionRender(BaseRenderer):
             img_path = os.path.join(os.path.dirname(BookInfo.CURRENT_FILE_PATH), token.src)
             img_path = pathlib.Path(img_path).__str__()
             storage_path = os.path.join(BookInfo.BOOK_NAME, erase_prefix_string(img_path, BookInfo.BOOK_PATH))
-            url = oss_handler.upload_pic(img_path, storage_path)
+            if oss_handler.bucket is None:
+                url = storage_path
+            else:
+                url = oss_handler.upload_pic(img_path, storage_path)
         block_template = {
             "type": "image",
             "image": {

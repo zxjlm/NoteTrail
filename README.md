@@ -15,15 +15,17 @@ convert markdown directory to notions.
 
 项目使用[notion api](https://developers.notion.com/)来实现脚本导入.
 
-使用项目之前需要预设3个环境变量:
+使用项目之前需要预设环境变量:
 
 - NOTION_TOKEN: 从创建 [api integrations](https://www.notion.so/my-integrations) 用户, 并将其 _token_ 作为环境变量值
-- ALI_OSS_AK: 项目使用阿里云来存储图片, 所以需要阿里云对应的oss调用 _AccessKey_. [阿里云OSS](https://oss.console.aliyun.com/overview), [AccessKey管理](https://ram.console.aliyun.com/users). 本变量的值对应 __AccessKey ID__
-- ALI_OSS_SK: 同上. 本变量的值对应 __AccessKey Secret__.
+- (可选)项目使用阿里云来存储图片, 所以需要阿里云对应的oss调用 _AccessKey_, [阿里云OSS](https://oss.console.aliyun.com/overview), [AccessKey管理](https://ram.console.aliyun.com/users).
+  - ALI_OSS_AK: 本变量的值对应 __AccessKey ID__
+  - ALI_OSS_SK: 本变量的值对应 __AccessKey Secret__.
+  - ALI_BUCKET: bucket的url, 如 'https://example-oss-bucket.oss-cn-region.aliyuncs.com/'
 
-## markdown目录结构的书
+## markdown目录结构
 
-### 关于使用
+### 使用方法
 
 在 __book_processor.py__ 中填入对应的参数.
 
