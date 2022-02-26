@@ -200,8 +200,8 @@ class HexoProcessor:
 
 
 if __name__ == '__main__':
-    BookInfo.BOOK_PATH = '/Users/zhangxinjian/Projects/NodeProject/zxjlm.github.io/source/_posts'
-    BookInfo.BOOK_NAME = 'Blog'
+    BookInfo.BOOK_PATH = '/Users/zhangxinjian/Projects/NodeProject/zxjlm.github.io/source/_posts'  # 填入hexo的post文件组路径
+    BookInfo.BOOK_NAME = 'Blog'  # 标题名, 可自定
     database_id_ = RuntimeConfig.database_id
     HexoParser.update_properties(database_id_)
     p = HexoProcessor(database_id=database_id_)

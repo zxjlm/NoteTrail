@@ -115,7 +115,7 @@ class BookProcessor:
 
 
 if __name__ == '__main__':
-    BookInfo.BOOK_PATH = '/home/harumonia/projects/docs/tmp'
-    BookInfo.BOOK_NAME = 'Blog'
+    BookInfo.BOOK_PATH = '/home/harumonia/projects/docs/tmp'  # 填入书的目录路径
+    BookInfo.BOOK_NAME = 'Blog'  # 填入书的名称(可自定义)
     p = BookProcessor(database_id=RuntimeConfig.database_id)
     p.main()

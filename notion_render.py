@@ -531,16 +531,16 @@ if __name__ == "__main__":
     # body.children[49].paragraph.children[0].bulleted_list_item.children[1].paragraph.children
     BookInfo.BOOK_PATH = "/home/harumonia/projects/docs/note-book2-master/docs/ddd/"
     BookInfo.BOOK_NAME = 'ddd'
-    md_path_ = '/Users/zhangxinjian/Projects/NodeProject/zxjlm.github.io/source/_posts/2020-02-09-redis-note-1.md'
+    md_path_ = ''
     BookInfo.CURRENT_FILE_PATH = md_path_
     with open(md_path_) as f:
         node = markdown_render(f.readlines(), NotionRender)
 
-    response = notion_client.append_block_children('fd46e779-1e95-4e66-bd63-6720e1690db1', node)
+    # response = notion_client.append_block_children('fd46e779-1e95-4e66-bd63-6720e1690db1', node)
     # print(response)
 
-    sf = SuffixRender()
-    sf.recursion_insert('fd46e779-1e95-4e66-bd63-6720e1690db1')
+    # sf = SuffixRender()
+    # sf.recursion_insert('fd46e779-1e95-4e66-bd63-6720e1690db1')
 
     # notion_client.update_page(page_id="beee4c9245a7447291c14c9dd83029b4",
     #                # properties=self.generate_character_block(file_path),

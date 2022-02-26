@@ -6,14 +6,14 @@ from mistletoe import Document
 
 
 class RuntimeConfig:
-    database_id = ''
+    database_id = ''  # 数据库id
 
 
 class BookInfo:
-    BOOK_NAME = ""
-    BOOK_PATH = ""
-    CURRENT_FILE_PATH = ""
-    IS_HEXO = True
+    BOOK_NAME = ""  # 书名(自定义)
+    BOOK_PATH = ""  # 书存放的目录
+    CURRENT_FILE_PATH = ""  # 不需要填
+    # IS_HEXO = True
 
 
 class Bcolors:
