@@ -1,4 +1,6 @@
 import io
+import json
+import re
 from datetime import datetime
 
 import yaml
@@ -8,19 +10,38 @@ from block_render import BlockRender
 from character_scanner import CharacterScanner
 from my_notion_client import notion_client
 from notion_render import SuffixRender, NotionRender
-from utils import BookInfo, markdown_render
+from utils import BookInfo, markdown_render, generate_md5_from_text
 
 
 class HexoParser:
-    def __init__(self):
+    def __init__(self, database_id):
         self.property_map = {
-            # 'date': self.date_parser,
+            'date': self.date_parser,
             # 'updated': self.updated_parser,
             # 'update': self.updated_parser,
             'tags': self.tags_parser,
             'categories': self.categories_parser,
             'title': self.title_parser
         }
+        self.database_id = database_id
+        self.update_properties()
+
+    def update_properties(self):
+        properties = {
+            "Categories": {
+                "multi_select": []
+            },
+            'Tags': {
+                "multi_select": []
+            },
+            "HashValue": {
+                "rich_text": []
+            },
+            "PostDate": {
+                "date": {}
+            }
+        }
+        notion_client.update_database_properties(self.database_id, properties=properties)
 
     @staticmethod
     def tags_parser(values: list):
@@ -48,10 +69,15 @@ class HexoParser:
         }
 
     @staticmethod
-    def date_parser(value: datetime):
+    def date_parser(value):
+        if isinstance(value, str):
+            if re.match(r'\d{4}/\d{2}/\d{2}', value):
+                value = datetime.strptime(value, '%Y/%m/%d %H:%M:%S')
         return {
-            "Created Time": {
-                "created_time": value.isoformat()
+            "PostDate": {
+                "date": {
+                    "start": value.isoformat()
+                }
             }
         }
 
@@ -70,11 +96,33 @@ class HexoParser:
             }
         }
 
+    @staticmethod
+    def hash_parser(value: str):
+        return {
+            "HashValue": {
+                "rich_text": [
+                    {
+                        "type": "text",
+                        'text': {
+                            "content": value
+                        }
+                    }
+                ]
+            }
+        }
+
+    def serialize_raw_property(self, property_dict):
+        ...
+
     def main(self, property_dict):
         ret = {}
+
         for k, v in property_dict.items():
-            if k in self.property_map:
+            if k in self.property_map and v:
                 ret.update(self.property_map[k](v))
+
+        hash_res = generate_md5_from_text(json.dumps(ret))
+        ret.update(self.hash_parser(hash_res))
 
         return ret
 
@@ -102,20 +150,29 @@ class HexoProcessor:
 
         io_ = io.StringIO(extract_yaml_content())
         yaml_dict = yaml.safe_load(stream=io_)
-        property_dict = HexoParser().main(yaml_dict)
-        return property_dict
+        if yaml_dict.get('notion', True):
+            property_dict = HexoParser(self.database_id).main(yaml_dict)
+            return property_dict
+        else:
+            raise Exception('notion: false')
 
     def generate_properties(self, file_path):
         return self.pre_parse_hexo_file(file_path)
 
     def file_processor(self, file_path, page_id):
         logger.info('----------------> Processing file: {}'.format(file_path))
-        properties = self.generate_properties(file_path)
+        try:
+            properties = self.generate_properties(file_path)
+        except Exception as _e:
+            if str(_e) == 'notion: false':
+                return
+            else:
+                raise _e
         children = self.render_file(file_path)
         response = notion_client.create_page(parent={"database_id": page_id}, properties=properties, children=children)
         sf = SuffixRender()
         sf.recursion_insert(response['id'])
-        return response
+        # return response
 
     def main(self):
         path_dict = CharacterScanner().scanner()
@@ -125,6 +182,9 @@ class HexoProcessor:
             self.file_processor(block, self.database_id)
 
     def render_file(self, md_path):
+        def clean_annotation(text_):
+            return re.sub('<!--.*?-->', '', text_)
+
         BookInfo.CURRENT_FILE_PATH = md_path
         with open(md_path) as f:
             lines = f.readlines()
@@ -133,14 +193,13 @@ class HexoProcessor:
                 if line.strip() == '---' and idx > 2:
                     base = idx
                     break
-            if lines.index('<!-- more -->\n'):
-                lines.remove('<!-- more -->\n')
-            render_result = markdown_render(lines[base:], NotionRender)
+            clean_text = clean_annotation('$%^&'.join(lines[base:]))
+            render_result = markdown_render(clean_text.split('$%^&'), NotionRender)
         return render_result
 
 
 if __name__ == '__main__':
-    BookInfo.BOOK_PATH = '/home/harumonia/projects/docs/tmp'
+    BookInfo.BOOK_PATH = '/home/harumonia/projects/my_project/zxjlm.github.io/source/_posts'
     BookInfo.BOOK_NAME = 'Blog'
-    p = HexoProcessor(database_id='5dfca790-3787-4290-b22d-ec916bdc9f07')
+    p = HexoProcessor(database_id='1e8487296745443fba236d02341c7c2d')
     p.main()
