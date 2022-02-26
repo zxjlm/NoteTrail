@@ -118,7 +118,7 @@ class HexoParser:
         ret = {}
 
         for k, v in property_dict.items():
-            if k in self.property_map:
+            if k in self.property_map and v:
                 ret.update(self.property_map[k](v))
 
         hash_res = generate_md5_from_text(json.dumps(ret))
@@ -167,7 +167,7 @@ class HexoProcessor:
             if str(_e) == 'notion: false':
                 return
             else:
-                raise from _e
+                raise _e
         children = self.render_file(file_path)
         response = notion_client.create_page(parent={"database_id": page_id}, properties=properties, children=children)
         sf = SuffixRender()

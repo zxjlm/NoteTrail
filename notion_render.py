@@ -164,15 +164,26 @@ class NotionRender(BaseRenderer):
         }
         return rich_text_template
 
-    # def render_emphasis(self, token):
-    #     template = '<em>{}</em>'
-    #     return template.format(self.render_inner(token))
+    def render_emphasis(self, token):
+        rich_text_template = {
+            "type": "text",
+            "text": {
+                "content": ''.join(
+                    [child.content for child in token.children if child.__class__.__name__ == 'RawText']),
+                "link": None,
+            },
+            "annotations": {
+                "underline": True
+            },
+        }
+        return rich_text_template
 
     def render_inline_code(self, token):
         rich_text_template = {
             "type": "text",
             "text": {
-                "content": token.children[0].content,
+                "content": ''.join(
+                    [child.content for child in token.children if child.__class__.__name__ == 'RawText']),
                 "link": None,
             },
             "annotations": {
@@ -181,9 +192,17 @@ class NotionRender(BaseRenderer):
         }
         return rich_text_template
 
-    # def render_strikethrough(self, token):
-    #     template = '<del>{}</del>'
-    #     return template.format(self.render_inner(token))
+    def render_strikethrough(self, token):
+        rich_text_template = {
+            "type": "text",
+            "text": {
+                "content": token.children[0].content,
+                "link": None,
+            },
+            "annotations": {
+                "strikethrough": True
+            },
+        }
 
     def render_image(self, token):
         if token.src.startswith('http'):
