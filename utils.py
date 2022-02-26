@@ -6,7 +6,7 @@ from mistletoe import Document
 
 
 class RuntimeConfig:
-    ...
+    database_id = ''
 
 
 class BookInfo:

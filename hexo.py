@@ -6,11 +6,10 @@ from datetime import datetime
 import yaml
 from loguru import logger
 
-from block_render import BlockRender
 from character_scanner import CharacterScanner
 from my_notion_client import notion_client
 from notion_render import SuffixRender, NotionRender
-from utils import BookInfo, markdown_render, generate_md5_from_text
+from utils import BookInfo, markdown_render, generate_md5_from_text, RuntimeConfig
 
 
 class HexoParser:
@@ -132,7 +131,6 @@ class HexoProcessor:
             raise Exception('database or page must have one')
         self.database_id = database_id
         self.page_id = page_id
-        self.block_render = BlockRender()
 
     def pre_parse_hexo_file(self, file_path):
         def extract_yaml_content():
@@ -204,7 +202,7 @@ class HexoProcessor:
 if __name__ == '__main__':
     BookInfo.BOOK_PATH = '/Users/zhangxinjian/Projects/NodeProject/zxjlm.github.io/source/_posts'
     BookInfo.BOOK_NAME = 'Blog'
-    database_id_ = '5dfca79037874290b22dec916bdc9f07'
+    database_id_ = RuntimeConfig.database_id
     HexoParser.update_properties(database_id_)
     p = HexoProcessor(database_id=database_id_)
     p.main()

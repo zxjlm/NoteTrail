@@ -12,12 +12,11 @@ import os
 
 from loguru import logger
 
-from block_render import BlockRender
 from character_scanner import CharacterScanner
 
 from my_notion_client import notion_client
 from notion_render import NotionRender, SuffixRender
-from utils import markdown_render, BookInfo
+from utils import markdown_render, BookInfo, RuntimeConfig
 
 
 class BookProcessor:
@@ -26,7 +25,6 @@ class BookProcessor:
             raise Exception('database or page must have one')
         self.database_id = database_id
         self.page_id = page_id
-        self.block_render = BlockRender()
 
     def generate_title_property(self, file_path, raw_title=None):
         if not raw_title:
@@ -119,5 +117,5 @@ class BookProcessor:
 if __name__ == '__main__':
     BookInfo.BOOK_PATH = '/home/harumonia/projects/docs/tmp'
     BookInfo.BOOK_NAME = 'Blog'
-    p = BookProcessor(database_id='d0e931a36b43405996d118cf71957f6d')
+    p = BookProcessor(database_id=RuntimeConfig.database_id)
     p.main()
