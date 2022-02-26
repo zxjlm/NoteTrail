@@ -434,41 +434,42 @@ class NotionRender(BaseRenderer):
         # block_template[block_template['type']]['children'] = inner
         return block_template
 
-    # def render_table(self, token):
-    #     # This is actually gross and I wonder if there's a better way to do it.
-    #     #
-    #     # The primary difficulty seems to be passing down alignment options to
-    #     # reach individual cells.
-    #     template = '<table>\n{inner}</table>'
-    #     if hasattr(token, 'header'):
-    #         head_template = '<thead>\n{inner}</thead>\n'
-    #         head_inner = self.render_table_row(token.header, is_header=True)
-    #         head_rendered = head_template.format(inner=head_inner)
-    #     else:
-    #         head_rendered = ''
-    #     body_template = '<tbody>\n{inner}</tbody>\n'
-    #     body_inner = self.render_inner(token)
-    #     body_rendered = body_template.format(inner=body_inner)
-    #     return template.format(inner=head_rendered + body_rendered)
-    #
-    # def render_table_row(self, token, is_header=False):
-    #     template = '<tr>\n{inner}</tr>\n'
-    #     inner = ''.join([self.render_table_cell(child, is_header)
-    #                      for child in token.children])
-    #     return template.format(inner=inner)
-    #
-    # def render_table_cell(self, token, in_header=False):
-    #     template = '<{tag}{attr}>{inner}</{tag}>\n'
-    #     tag = 'th' if in_header else 'td'
-    #     if token.align is None:
-    #         align = 'left'
-    #     elif token.align == 0:
-    #         align = 'center'
-    #     elif token.align == 1:
-    #         align = 'right'
-    #     attr = ' align="{}"'.format(align)
-    #     inner = self.render_inner(token)
-    #     return template.format(tag=tag, attr=attr, inner=inner)
+    def render_table(self, token):
+        # This is actually gross and I wonder if there's a better way to do it.
+        #
+        # The primary difficulty seems to be passing down alignment options to
+        # reach individual cells.
+        template = {
+            "type": "table",
+            "table": {
+                "table_width": len(token.children[0].children),
+                "has_column_header": False,
+                "has_row_header": False,
+                "children": []
+            }
+        }
+        head_row = []
+        if hasattr(token, 'header'):
+            template['table']['has_column_header'] = True
+            head_row = self.render_table_row(token.header)
+        body_inner = self.render_inner(token)
+        template['table']['children'] = [head_row] + body_inner
+        return template
+
+    def render_table_row(self, token):
+        template = {
+            "type": "table_row",
+            "table_row": {
+                "cells": []
+            }
+        }
+        cells = [self.render_table_cell(child) for child in token.children]
+        template['table_row']['cells'] = cells
+        return template
+
+    def render_table_cell(self, token):
+        inner = self.render_inner(token)
+        return inner
 
     @staticmethod
     def render_thematic_break(token):
@@ -530,7 +531,7 @@ if __name__ == "__main__":
     # body.children[49].paragraph.children[0].bulleted_list_item.children[1].paragraph.children
     BookInfo.BOOK_PATH = "/home/harumonia/projects/docs/note-book2-master/docs/ddd/"
     BookInfo.BOOK_NAME = 'ddd'
-    md_path_ = '/home/harumonia/projects/docs/HowToCook/README.md'
+    md_path_ = '/Users/zhangxinjian/Projects/NodeProject/zxjlm.github.io/source/_posts/2020-02-09-redis-note-1.md'
     BookInfo.CURRENT_FILE_PATH = md_path_
     with open(md_path_) as f:
         node = markdown_render(f.readlines(), NotionRender)

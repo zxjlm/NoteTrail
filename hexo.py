@@ -14,7 +14,7 @@ from utils import BookInfo, markdown_render, generate_md5_from_text
 
 
 class HexoParser:
-    def __init__(self, database_id):
+    def __init__(self):
         self.property_map = {
             'date': self.date_parser,
             # 'updated': self.updated_parser,
@@ -23,10 +23,9 @@ class HexoParser:
             'categories': self.categories_parser,
             'title': self.title_parser
         }
-        self.database_id = database_id
-        self.update_properties()
 
-    def update_properties(self):
+    @staticmethod
+    def update_properties(database_id):
         properties = {
             "Categories": {
                 "multi_select": []
@@ -41,7 +40,7 @@ class HexoParser:
                 "date": {}
             }
         }
-        notion_client.update_database_properties(self.database_id, properties=properties)
+        notion_client.update_database_properties(database_id, properties=properties)
 
     @staticmethod
     def tags_parser(values: list):
@@ -89,7 +88,7 @@ class HexoParser:
                     {
                         "type": "text",
                         "text": {
-                            "content": value
+                            "content": str(value)
                         }
                     }
                 ]
@@ -151,7 +150,7 @@ class HexoProcessor:
         io_ = io.StringIO(extract_yaml_content())
         yaml_dict = yaml.safe_load(stream=io_)
         if yaml_dict.get('notion', True):
-            property_dict = HexoParser(self.database_id).main(yaml_dict)
+            property_dict = HexoParser().main(yaml_dict)
             return property_dict
         else:
             raise Exception('notion: false')
@@ -168,11 +167,15 @@ class HexoProcessor:
                 return
             else:
                 raise _e
-        children = self.render_file(file_path)
-        response = notion_client.create_page(parent={"database_id": page_id}, properties=properties, children=children)
-        sf = SuffixRender()
-        sf.recursion_insert(response['id'])
-        # return response
+        try:
+            children = self.render_file(file_path)
+            response = notion_client.create_page(parent={"database_id": page_id}, properties=properties,
+                                                 children=children)
+            sf = SuffixRender()
+            sf.recursion_insert(response['id'])
+        except Exception as _e:
+            logger.exception(_e)
+            return
 
     def main(self):
         path_dict = CharacterScanner().scanner()
@@ -199,7 +202,9 @@ class HexoProcessor:
 
 
 if __name__ == '__main__':
-    BookInfo.BOOK_PATH = '/home/harumonia/projects/my_project/zxjlm.github.io/source/_posts'
+    BookInfo.BOOK_PATH = '/Users/zhangxinjian/Projects/NodeProject/zxjlm.github.io/source/_posts'
     BookInfo.BOOK_NAME = 'Blog'
-    p = HexoProcessor(database_id='1e8487296745443fba236d02341c7c2d')
+    database_id_ = '5dfca79037874290b22dec916bdc9f07'
+    HexoParser.update_properties(database_id_)
+    p = HexoProcessor(database_id=database_id_)
     p.main()
