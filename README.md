@@ -1,6 +1,6 @@
 # NoteTrail
 
-<!-- more  In memory of a lost love -->
+<!-- In memory of a lost love and happy birthday to me -->
 
 convert markdown directory to notions.
 
@@ -33,13 +33,11 @@ convert markdown directory to notions.
 
 ### 关于样例
 
-使用 [ddd项目](https://github.com/zq99299/note-book2/tree/master/docs/ddd) 进行测试.
-
-![bookcontent](./static/bookcontent.png)
-
-目前还存在一些BUG, 如目录相关的逻辑还在构思.
-
-![tocbug](./static/tocbug.png)
+| github | notion |
+|---|---|
+|[ddd笔记](https://github.com/zq99299/note-book2/tree/master/docs/ddd)|[notion样例](https://harumonia.notion.site/ddd-9c90bf7e622e4d0bbfdf2768e06561e5)
+|[you-dont-know-js](https://github.com/getify/You-Dont-Know-JS)|[notion样例](https://harumonia.notion.site/You-Dont-Know-JS-77771cc3b4bb4a1787a4a99d272634ce)
+|[how-to-cook](https://github.com/Anduin2017/HowToCook)|[notion样例](https://harumonia.notion.site/how-to-cook-801c4df3c9e640df8667e8533fe1a457)
 
 
 ## hexo博客迁移至notion
