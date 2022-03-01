@@ -15,7 +15,8 @@ from mistletoe.base_renderer import BaseRenderer
 
 from my_notion_client import notion_client
 from oss_handler import oss_handler
-from utils import markdown_render, erase_prefix_string, BookInfo, long_content_split_patch, validate_language, normal_language_map
+from utils import markdown_render, erase_prefix_string, BookInfo, long_content_split_patch, validate_language, \
+    normal_language_map
 
 if sys.version_info < (3, 4):
     from mistletoe import _html as html
@@ -247,13 +248,29 @@ class NotionRender(BaseRenderer):
         return rich_text_template
 
     def render_auto_link(self, token):
-        template = '<a href="{target}">{inner}</a>'
+        paragraph_template = {
+            "type": "paragraph",
+            "paragraph": {
+                "text": [],
+            }
+        }
         if token.mailto:
             target = 'mailto:{}'.format(token.target)
         else:
             target = self.escape_url(token.target)
-        inner = self.render_inner(token)
-        return template.format(target=target, inner=inner)
+        content = ''
+        for child in token.children:
+            if child.__class__.__name__ == 'RawText':
+                content = child.content
+                break
+        text_template = {
+            "type": "text",
+            "text": {
+                "content": content,
+                "link": target,
+            }
+        }
+        return text_template
 
     def render_escape_sequence(self, token):
         return {'type': 'text', 'text': {'content': token.children[0].content, 'link': None}}
@@ -500,24 +517,23 @@ class NotionRender(BaseRenderer):
         self.footnotes.update(token.footnotes)
         # inner = '\n'.join([self.render(child) for child in token.children])
         # return '{}\n'.format(inner) if inner else ''
-        res=[]
+        res = []
         for child in token.children:
             tmp = self.render(child)
             if tmp:
                 res.append(tmp)
         return res
 
-
     @staticmethod
     def escape_html(raw):
         return html.escape(html.unescape(raw)).replace('&#x27;', "'")
 
-    # @staticmethod
-    # def escape_url(raw):
-    #     """
-    #     Escape urls to prevent code injection craziness. (Hopefully.)
-    #     """
-    #     return html.escape(quote(html.unescape(raw), safe='/#:()*?=%@+,&;'))
+    @staticmethod
+    def escape_url(raw):
+        """
+        Escape urls to prevent code injection craziness. (Hopefully.)
+        """
+        return html.escape(quote(html.unescape(raw), safe='/#:()*?=%@+,&;'))
 
     def render_inner(self, token):
         # if token.__class__.__name__ == 'List':
