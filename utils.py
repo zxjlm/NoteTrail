@@ -6,7 +6,7 @@ from mistletoe import Document
 
 
 class RuntimeConfig:
-    database_id = ''  # 数据库id
+    database_id = 'd0e931a36b43405996d118cf71957f6d'  # 数据库id
 
 
 class BookInfo:
@@ -27,6 +27,16 @@ class Bcolors:
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
 
+
+def normal_language_map(language: str):
+    mapping = {
+        'js': 'javascript',
+        'cpp': 'c++',
+        'py': 'python',
+        'text': 'plain text',
+        'plain_text': 'plain text',
+    }
+    return mapping.get(language, language)
 
 def validate_language(language: str) -> bool:
     languages = ["abap", "arduino", "bash", "basic", "c", "clojure", "coffeescript", "c++", "c#", "css", "dart", "diff",
