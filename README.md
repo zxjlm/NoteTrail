@@ -64,7 +64,7 @@ convert markdown directory to notions.
 
 ## TODO
 
-- [x] blocks
+- [ ] blocks
   - [x] code
   - [x] p
   - [x] ul
@@ -73,6 +73,8 @@ convert markdown directory to notions.
   - [x] rich-text
   - [x] picture
   - [x] table
+  - [ ] html block
+  - [ ] html span
 - [ ] add logger
 - [ ] add sqlite to store notion-db __ ebook map relation, for update
 - [x] refactor block class
