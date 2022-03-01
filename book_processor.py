@@ -55,8 +55,9 @@ class BookProcessor:
             # create a readme page
             if file_path.lower() == 'readme.md':
                 title = files_mapper[file_path][:-10]
+                properties = self.generate_properties(title)
                 response = notion_client.create_page(parent={"page_id": root_page_id},
-                                                     properties=self.generate_properties(title),
+                                                     properties=properties['properties'],
                                                      children=self.render_file(files_mapper[file_path]))
                 dir_path['blocks'].remove(files_mapper[file_path])
                 break
@@ -72,9 +73,11 @@ class BookProcessor:
 
     def file_processor(self, file_path, page_id):
         logger.info('----------------> Processing file: {}'.format(file_path))
+        properties = self.generate_properties(file_path)
+        children = self.render_file(file_path)
         response = notion_client.create_page(parent={"page_id": page_id},
-                                             properties=self.generate_properties(file_path),
-                                             children=self.render_file(file_path))
+                                             properties= properties['properties'],
+                                             children=children)
         sf = SuffixRender()
         sf.recursion_insert(response['id'])
         return response
@@ -115,7 +118,7 @@ class BookProcessor:
 
 
 if __name__ == '__main__':
-    BookInfo.BOOK_PATH = '/home/harumonia/projects/docs/tmp'  # 填入书的目录路径
-    BookInfo.BOOK_NAME = 'Blog'  # 填入书的名称(可自定义)
+    BookInfo.BOOK_PATH = '/Users/zhangxinjian/Projects/docs/You-Dont-Know-JS/scope-closures'  # 填入书的目录路径
+    BookInfo.BOOK_NAME = 'You-Dont-Know-JS'  # 填入书的名称(可自定义)
     p = BookProcessor(database_id=RuntimeConfig.database_id)
     p.main()

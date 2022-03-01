@@ -15,7 +15,7 @@ from mistletoe.base_renderer import BaseRenderer
 
 from my_notion_client import notion_client
 from oss_handler import oss_handler
-from utils import markdown_render, erase_prefix_string, BookInfo, long_content_split_patch, validate_language
+from utils import markdown_render, erase_prefix_string, BookInfo, long_content_split_patch, validate_language, normal_language_map
 
 if sys.version_info < (3, 4):
     from mistletoe import _html as html
@@ -269,7 +269,8 @@ class NotionRender(BaseRenderer):
 
     @staticmethod
     def render_html_span(token):
-        return token.content
+        logger.warning(f'html span token: {token.content}')
+        return
 
     def render_heading(self, token):
         inner = self.render_inner(token)
@@ -311,7 +312,7 @@ class NotionRender(BaseRenderer):
         children = []
         for foo in self.render_inner(token):
             if 'text' not in foo:
-                if 'image' in foo:
+                if isinstance(foo, dict) and 'image' in foo:
                     children.append(foo)
                 else:
                     logger.warning('paragraph: {}'.format(foo))
@@ -325,8 +326,7 @@ class NotionRender(BaseRenderer):
 
     def render_block_code(self, token):
         language = token.language
-        if language == 'plain_text':
-            language = 'plain text'
+        language = normal_language_map(language)
         if not validate_language(language):
             logger.warning('invalid language: {}'.format(language))
             language = 'plain text'
@@ -493,13 +493,20 @@ class NotionRender(BaseRenderer):
 
     @staticmethod
     def render_html_block(token):
-        return token.content
+        logger.warning(f'html block token: {token.content}')
+        return
 
     def render_document(self, token):
         self.footnotes.update(token.footnotes)
         # inner = '\n'.join([self.render(child) for child in token.children])
         # return '{}\n'.format(inner) if inner else ''
-        return [self.render(child) for child in token.children]
+        res=[]
+        for child in token.children:
+            tmp = self.render(child)
+            if tmp:
+                res.append(tmp)
+        return res
+
 
     @staticmethod
     def escape_html(raw):
@@ -515,7 +522,7 @@ class NotionRender(BaseRenderer):
     def render_inner(self, token):
         # if token.__class__.__name__ == 'List':
         #     return map(self.render, token.children)
-        return list(map(self.render, token.children))
+        return [foo for foo in list(map(self.render, token.children)) if foo]
 
     def render_multi_objects_and_combine(self, tokens):
         pass
@@ -532,12 +539,14 @@ class NotionRender(BaseRenderer):
 
 if __name__ == "__main__":
     # body.children[49].paragraph.children[0].bulleted_list_item.children[1].paragraph.children
-    BookInfo.BOOK_PATH = "/home/harumonia/projects/docs/note-book2-master/docs/ddd/"
+    BookInfo.BOOK_PATH = "/Users/zhangxinjian/Projects/docs/tmp"
     BookInfo.BOOK_NAME = 'ddd'
-    md_path_ = ''
+    md_path_ = '/Users/zhangxinjian/Projects/docs/You-Dont-Know-JS/scope-closures/apB.md'
     BookInfo.CURRENT_FILE_PATH = md_path_
     with open(md_path_) as f:
         node = markdown_render(f.readlines(), NotionRender)
+
+    print(node)
 
     # response = notion_client.append_block_children('fd46e779-1e95-4e66-bd63-6720e1690db1', node)
     # print(response)

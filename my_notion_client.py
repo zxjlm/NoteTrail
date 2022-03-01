@@ -11,7 +11,8 @@ class MyNotionClient:
 
     def create_page(self, *args, **kwargs):
         properties = kwargs.get('properties', 'empty')
-        logger.debug("Creating page, properties: {}".format(properties))
+        parent = kwargs.get('parent')
+        logger.debug("Creating page, properties: {}, parent: {}".format(properties, parent))
         return self.client.pages.create(*args, **kwargs)
 
     def update_page(self, *args, **kwargs):
