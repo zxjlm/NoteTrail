@@ -1,5 +1,7 @@
 # NoteTrail
 
+<!-- more  In memory of a lost love -->
+
 convert markdown directory to notions.
 
 将 markdown (`*.md`) 目录结构的电子书导入到 __notion__ 中.
