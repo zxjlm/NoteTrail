@@ -15,7 +15,7 @@ from loguru import logger
 from character_scanner import CharacterScanner
 
 from my_notion_client import notion_client
-from notion_render import NotionRender, SuffixRender
+from notion_render import NotionRender, SuffixRender, WatcherClass
 from utils import markdown_render, BookInfo, RuntimeConfig
 
 
@@ -91,8 +91,9 @@ class BookProcessor:
                                                  children=children)
             sf = SuffixRender()
             sf.recursion_insert(response['id'])
-            return
         except Exception as _e:
+            # clean WatcherClass.DIGEST_TOKEN_FAMILY
+            WatcherClass.DIGEST_TOKEN_FAMILY = []
             logger.exception(_e)
             logger.error(f'failed to convert md file, perhaps not in standard markdown format, or you can make a issue.')
 
