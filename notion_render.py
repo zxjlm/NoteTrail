@@ -209,6 +209,10 @@ class NotionRender(BaseRenderer):
         }
 
     def render_image(self, token):
+        if self._suppress_ptag_stack.__len__() >=2 :
+            return {
+                'type': 'text', 'text': {'content': f'not render image: {token.src}', 'link': None}
+            }
         if token.src.startswith('http'):
             url = token.src
         else:
@@ -407,7 +411,7 @@ class NotionRender(BaseRenderer):
 
     @staticmethod
     def select_list_template(token):
-        if token.leader == '-':
+        if hasattr(token, 'leader') and token.leader == '-':
             block_template = {
                 "type": "bulleted_list_item",
                 "bulleted_list_item": {
@@ -568,7 +572,7 @@ if __name__ == "__main__":
     # body.children[49].paragraph.children[0].bulleted_list_item.children[1].paragraph.children
     BookInfo.BOOK_PATH = "/Users/zhangxinjian/Projects/docs/tmp"
     BookInfo.BOOK_NAME = 'ddd'
-    md_path_ = '/Users/zhangxinjian/Projects/docs/tmp/dpdk/index.md'
+    md_path_ = '/Users/zhangxinjian/Projects/docs/tmp/tcp-bbr.md'
     BookInfo.CURRENT_FILE_PATH = md_path_
     with open(md_path_) as f:
         node = markdown_render(f.readlines(), NotionRender)
