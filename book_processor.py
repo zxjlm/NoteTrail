@@ -80,14 +80,19 @@ class BookProcessor:
         if os.path.basename(file_path) in self.IGNORE_FILES:
             logger.info(f'ignore file {file_path}, skip it')
             return
-        properties = self.generate_properties(file_path)
-        children = self.render_file(file_path)
-        response = notion_client.create_page(parent={"page_id": page_id},
-                                             properties= properties['properties'],
-                                             children=children)
-        sf = SuffixRender()
-        sf.recursion_insert(response['id'])
-        return
+
+        try:
+            properties = self.generate_properties(file_path)
+            children = self.render_file(file_path)
+            response = notion_client.create_page(parent={"page_id": page_id},
+                                                 properties= properties['properties'],
+                                                 children=children)
+            sf = SuffixRender()
+            sf.recursion_insert(response['id'])
+            return
+        except Exception as _e:
+            logger.exception(_e)
+            logger.error(f'failed to convert md file, perhaps not in standard markdown format, or you can make a issue.')
 
     def main(self, book_url=None):
         path_dict = CharacterScanner().scanner()
@@ -125,7 +130,7 @@ class BookProcessor:
 
 
 if __name__ == '__main__':
-    BookInfo.BOOK_PATH = '/Users/zhangxinjian/Projects/docs/tmp'  # 填入书的目录路径
-    BookInfo.BOOK_NAME = 'how-to-cook-tmp'  # 填入书的名称(可自定义)
+    BookInfo.BOOK_PATH = '/Users/zhangxinjian/Projects/docs/HowToCook'  # 填入书的目录路径
+    BookInfo.BOOK_NAME = 'how-to-cook'  # 填入书的名称(可自定义)
     p = BookProcessor(database_id=RuntimeConfig.database_id)
     p.main()
