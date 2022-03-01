@@ -67,6 +67,8 @@ def erase_prefix_string(string, prefix):
     cnt = 0
     while cnt < len(prefix) and string[cnt] == prefix[cnt]:
         cnt += 1
+    if string[cnt] == os.path.sep:
+        cnt += 1
     return string[cnt:]
 
 
