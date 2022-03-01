@@ -8,7 +8,7 @@ convert markdown directory to notions.
 
 项目可以用来做什么?
 
-- [markdown目录结构的书](#markdown目录结构的书)
+- [markdown目录结构的书导入至notion](#markdown目录结构的书)
 - [hexo博客迁移至notion](#hexo博客迁移至notion)
 
 样例展示: [我的notion主页](https://harumonia.notion.site/Harumonia-e1d77980f1b942beb0ac80c3f3448a8d)
