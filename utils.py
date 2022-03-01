@@ -35,6 +35,8 @@ def normal_language_map(language: str):
         'py': 'python',
         'text': 'plain text',
         'plain_text': 'plain text',
+        'sh': 'shell',
+        '': 'plain text'
     }
     return mapping.get(language, language)
 
