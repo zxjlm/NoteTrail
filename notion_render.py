@@ -80,6 +80,8 @@ class SuffixRender:
                 self._digest_tokens.add(token)
 
     def update_object_digest_mapper(self, obj, parent, children):
+        if not obj[obj['type']]['text']:
+            return
         clean_text = obj[obj['type']]['text'][0]['plain_text'].replace("placeholder:", '')
         if clean_text in self._digest_tokens:
             self._object_digest_mapper[clean_text] = {
@@ -210,8 +212,13 @@ class NotionRender(BaseRenderer):
         if token.src.startswith('http'):
             url = token.src
         else:
-            img_path = os.path.join(os.path.dirname(BookInfo.CURRENT_FILE_PATH), token.src)
-            img_path = pathlib.Path(img_path).__str__()
+            if token.src.startswith(os.path.sep):
+                # root path in github is the path of the project in pc
+                img_path = os.path.join(BookInfo.BOOK_PATH, token.src.lstrip(os.path.sep))
+            else:
+                # the relpath
+                img_path = os.path.join(os.path.dirname(BookInfo.CURRENT_FILE_PATH), token.src)
+                img_path = pathlib.Path(img_path).__str__()
             storage_path = os.path.join(BookInfo.BOOK_NAME, erase_prefix_string(img_path, BookInfo.BOOK_PATH))
             if oss_handler.bucket is None:
                 url = storage_path
@@ -268,7 +275,10 @@ class NotionRender(BaseRenderer):
             "type": "text",
             "text": {
                 "content": content,
-                "link": target,
+                "link": {
+                    'type': 'url',
+                    'url': target
+                },
             }
         }
         return text_template
@@ -558,7 +568,7 @@ if __name__ == "__main__":
     # body.children[49].paragraph.children[0].bulleted_list_item.children[1].paragraph.children
     BookInfo.BOOK_PATH = "/Users/zhangxinjian/Projects/docs/tmp"
     BookInfo.BOOK_NAME = 'ddd'
-    md_path_ = '/Users/zhangxinjian/Projects/docs/sdn-handbook/dpdk/index.md'
+    md_path_ = '/Users/zhangxinjian/Projects/docs/tmp/dpdk/index.md'
     BookInfo.CURRENT_FILE_PATH = md_path_
     with open(md_path_) as f:
         node = markdown_render(f.readlines(), NotionRender)
