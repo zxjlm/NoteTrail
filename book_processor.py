@@ -21,7 +21,9 @@ from utils import markdown_render, BookInfo, RuntimeConfig
 
 class BookProcessor:
     IGNORE_FILES = [
-        'CONTRIBUTING.md'
+        'CONTRIBUTING.md',
+        'CODE_OF_CONDUCT.md',
+        'SUMMARY.md'
     ]
 
     def __init__(self, database_id=None, page_id=None):
@@ -130,7 +132,7 @@ class BookProcessor:
 
 
 if __name__ == '__main__':
-    BookInfo.BOOK_PATH = '/Users/zhangxinjian/Projects/docs/HowToCook'  # 填入书的目录路径
-    BookInfo.BOOK_NAME = 'how-to-cook'  # 填入书的名称(可自定义)
+    BookInfo.BOOK_PATH = '/Users/zhangxinjian/Projects/docs/sdn-handbook'  # 填入书的目录路径
+    BookInfo.BOOK_NAME = 'sdn-handbook'  # 填入书的名称(可自定义)
     p = BookProcessor(database_id=RuntimeConfig.database_id)
     p.main()
