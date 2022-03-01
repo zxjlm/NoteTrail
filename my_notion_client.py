@@ -7,6 +7,7 @@ from notion_client import Client
 
 class MyNotionClient:
     def __init__(self, client):
+        # todo: httpx.ConnectError
         self.client = Client(auth=os.environ["NOTION_TOKEN"], client=client)
 
     def create_page(self, *args, **kwargs):
