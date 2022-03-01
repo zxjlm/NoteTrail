@@ -49,8 +49,12 @@ class OSSHandler:
         with open(path, 'rb') as fileobj:
             fileobj.seek(0, os.SEEK_SET)
             # current = fileobj.tell()
-            self.bucket.put_object(filename, fileobj)
-        logger.info('uploaded {}'.format(filename))
+            try:
+                self.bucket.put_object(filename, fileobj)
+                logger.info('uploaded {}'.format(filename))
+            except Exception as _e:
+                logger.warning('failed to upload {}, exception: {}'.format(filename, _e))
+
 
         return self.BASIC_URL + filename
 

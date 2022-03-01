@@ -20,6 +20,10 @@ from utils import markdown_render, BookInfo, RuntimeConfig
 
 
 class BookProcessor:
+    IGNORE_FILES = [
+        'CONTRIBUTING.md'
+    ]
+
     def __init__(self, database_id=None, page_id=None):
         if (database_id or page_id) is None:
             raise Exception('database or page must have one')
@@ -64,7 +68,7 @@ class BookProcessor:
         else:
             # create a blank page
             response = notion_client.create_page(parent={"page_id": root_page_id},
-                                                 properties=self.generate_properties(dir_path['path']))
+                                                 properties=self.generate_properties(dir_path['path'])['properties'])
 
         for block in dir_path['blocks']:
             self.file_processor(block, response['id'])
@@ -73,6 +77,9 @@ class BookProcessor:
 
     def file_processor(self, file_path, page_id):
         logger.info('----------------> Processing file: {}'.format(file_path))
+        if os.path.basename(file_path) in self.IGNORE_FILES:
+            logger.info(f'ignore file {file_path}, skip it')
+            return
         properties = self.generate_properties(file_path)
         children = self.render_file(file_path)
         response = notion_client.create_page(parent={"page_id": page_id},
@@ -80,7 +87,7 @@ class BookProcessor:
                                              children=children)
         sf = SuffixRender()
         sf.recursion_insert(response['id'])
-        return response
+        return
 
     def main(self, book_url=None):
         path_dict = CharacterScanner().scanner()
@@ -118,7 +125,7 @@ class BookProcessor:
 
 
 if __name__ == '__main__':
-    BookInfo.BOOK_PATH = '/Users/zhangxinjian/Projects/docs/You-Dont-Know-JS/scope-closures'  # 填入书的目录路径
-    BookInfo.BOOK_NAME = 'You-Dont-Know-JS'  # 填入书的名称(可自定义)
+    BookInfo.BOOK_PATH = '/Users/zhangxinjian/Projects/docs/tmp'  # 填入书的目录路径
+    BookInfo.BOOK_NAME = 'how-to-cook-tmp'  # 填入书的名称(可自定义)
     p = BookProcessor(database_id=RuntimeConfig.database_id)
     p.main()
