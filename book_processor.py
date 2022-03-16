@@ -87,7 +87,7 @@ class BookProcessor:
             properties = self.generate_properties(file_path)
             children = self.render_file(file_path)
             response = notion_client.create_page(parent={"page_id": page_id},
-                                                 properties= properties['properties'],
+                                                 properties=properties['properties'],
                                                  children=children)
             sf = SuffixRender()
             sf.recursion_insert(response['id'])
@@ -95,7 +95,8 @@ class BookProcessor:
             # clean WatcherClass.DIGEST_TOKEN_FAMILY
             WatcherClass.DIGEST_TOKEN_FAMILY = []
             logger.exception(_e)
-            logger.error(f'failed to convert md file, perhaps not in standard markdown format, or you can make a issue.')
+            logger.error(
+                f'failed to convert md file, perhaps not in standard markdown format, or you can make a issue.')
 
     def main(self, book_url=None):
         path_dict = CharacterScanner().scanner()

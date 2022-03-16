@@ -209,7 +209,7 @@ class NotionRender(BaseRenderer):
         }
 
     def render_image(self, token):
-        if self._suppress_ptag_stack.__len__() >=2 :
+        if self._suppress_ptag_stack.__len__() >= 2:
             return {
                 'type': 'text', 'text': {'content': f'not render image: {token.src}', 'link': None}
             }

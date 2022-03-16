@@ -55,7 +55,6 @@ class OSSHandler:
             except Exception as _e:
                 logger.warning('failed to upload {}, exception: {}'.format(filename, _e))
 
-
         return self.BASIC_URL + filename
 
 
