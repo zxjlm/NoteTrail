@@ -29,7 +29,7 @@ convert markdown directory to notions.
 
 ### 使用方法
 
-在 __book_processor.py__ 中填入对应的参数.
+在 __./watson/book_processor.py__ 中填入对应的参数.
 
 ### 关于样例
 
@@ -49,7 +49,7 @@ convert markdown directory to notions.
 
 ### 使用方法
 
-在 __hexo.py__ 中填入对应的参数.
+在 __./watson/hexo/hexo.py__ 中填入对应的参数.
 
 ### 样例展示
 

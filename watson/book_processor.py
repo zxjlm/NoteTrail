@@ -16,7 +16,7 @@ from character_scanner import CharacterScanner
 
 from my_notion_client import notion_client
 from notion_render import NotionRender, SuffixRender, WatcherClass
-from utils import markdown_render, BookInfo, RuntimeConfig
+from watson.utils.utils import markdown_render, BookInfo, RuntimeConfig
 
 
 class BookProcessor:

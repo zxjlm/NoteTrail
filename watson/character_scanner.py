@@ -11,7 +11,7 @@
 import glob
 import os
 
-from utils import Bcolors, BookInfo
+from watson.utils.utils import Bcolors, BookInfo
 
 
 class CharacterScanner:
@@ -92,7 +92,6 @@ class CharacterScanner:
 
 if __name__ == '__main__':
     BookInfo.BOOK_PATH = '/home/harumonia/projects/docs/w3-goto-world'
-    import pprint
     p = CharacterScanner()
     # pprint.pprint(p.scanner())
     p.plain_recursion_scanner('/home/harumonia/projects/docs/w3-goto-world')

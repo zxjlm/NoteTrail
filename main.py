@@ -11,7 +11,7 @@
 import platform
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
 
-from utils import check_runtime, check_proxy_format
+from watson.utils.utils import check_runtime, check_proxy_format
 
 __version__ = "v0.1"
 __module_name__ = "???"
@@ -67,7 +67,7 @@ def main():
         if not check_proxy_format(args.proxy):
             print(f"Invalid proxy format: {args.proxy}")
             exit(1)
-        import my_notion_client
+        from watson import my_notion_client
         import httpx
         client_ = httpx.Client(proxies={'http://': f'http://{args.proxy}', 'https://': f'http://{args.proxy}'},
                                timeout=30)
