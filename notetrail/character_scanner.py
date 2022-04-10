@@ -11,7 +11,7 @@
 import glob
 import os
 
-from watson.utils.utils import Bcolors, BookInfo
+from utils.utils import Bcolors, BookInfo
 
 
 class CharacterScanner:

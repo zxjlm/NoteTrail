@@ -15,8 +15,8 @@ from mistletoe.span_token import HTMLSpan
 from mistletoe.base_renderer import BaseRenderer
 
 from my_notion_client import notion_client
-from watson.utils.oss_handler import oss_handler
-from watson.utils.utils import markdown_render, erase_prefix_string, BookInfo, long_content_split_patch, validate_language, \
+from utils.oss_handler import oss_handler
+from utils.utils import markdown_render, erase_prefix_string, BookInfo, long_content_split_patch, validate_language, \
     normal_language_map
 
 if sys.version_info < (3, 4):

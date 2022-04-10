@@ -6,10 +6,10 @@ from datetime import datetime
 import yaml
 from loguru import logger
 
-from watson.character_scanner import CharacterScanner
-from watson.my_notion_client import notion_client
-from watson.notion_render import SuffixRender, NotionRender
-from watson.utils.utils import BookInfo, markdown_render, generate_md5_from_text, RuntimeConfig
+from notetrail.character_scanner import CharacterScanner
+from notetrail.my_notion_client import notion_client
+from notetrail.notion_render import SuffixRender, NotionRender
+from notetrail.utils.utils import BookInfo, markdown_render, generate_md5_from_text, RuntimeConfig
 
 
 class HexoParser:
