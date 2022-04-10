@@ -11,7 +11,7 @@
 import glob
 import os
 
-from utils.utils import Bcolors, BookInfo
+from notetrail.utils.utils import Bcolors, BookInfo
 
 
 class CharacterScanner:

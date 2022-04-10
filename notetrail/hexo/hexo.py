@@ -95,6 +95,10 @@ class HexoParser:
         }
 
     @staticmethod
+    def get_title(properties: dict):
+        return properties['title']['title'][0]['text']['content']
+
+    @staticmethod
     def hash_parser(value: str):
         return {
             "HashValue": {
@@ -108,6 +112,10 @@ class HexoParser:
                 ]
             }
         }
+
+    @staticmethod
+    def get_hash(properties: dict):
+        return properties['HashValue']['rich_text'][0]['text']['content']
 
     def serialize_raw_property(self, property_dict):
         ...
@@ -160,6 +168,17 @@ class HexoProcessor:
         logger.info('----------------> Processing file: {}'.format(file_path))
         try:
             properties = self.generate_properties(file_path)
+
+            full_title = HexoParser.get_title(properties)
+            response = notion_client.search(query=full_title)
+            for result in response.get('results', []):
+                if result['properties']['\ufeffName']['title'][0]['plain_text']:
+                    if result['properties']['HashValue']['rich_text'][0]['plain_text'] == HexoParser.get_hash(properties):
+                        logger.info(f'blog {full_title} has been in the notion')
+                        return
+                    else:
+                        logger.warning(f'blog {full_title} need to be update, but this is a todo feature...')
+                        return
         except Exception as _e:
             if str(_e) == 'notion: false':
                 return

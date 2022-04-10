@@ -4,6 +4,8 @@ import httpx
 from loguru import logger
 from notion_client import Client
 
+from notetrail.utils.decorators import log
+
 
 class MyNotionClient:
     def __init__(self, client):
@@ -45,6 +47,10 @@ class MyNotionClient:
 
         for child in children:
             self.client.blocks.delete(block_id=child['id'])
+
+    @log
+    def search(self, query):
+        return self.client.search(query=query)
 
 
 client_ = httpx.Client(proxies={'http://': 'http://127.0.0.1:7890', 'https://': 'http://127.0.0.1:7890'}, timeout=30)

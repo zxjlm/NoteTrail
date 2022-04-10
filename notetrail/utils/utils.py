@@ -6,7 +6,7 @@ from mistletoe import Document
 
 
 class RuntimeConfig:
-    database_id = 'd0e931a36b43405996d118cf71957f6d'  # 数据库id
+    database_id = '5dfca79037874290b22dec916bdc9f07'  # 数据库id
 
 
 class BookInfo:
