@@ -2,6 +2,7 @@ import io
 import json
 import re
 from datetime import datetime
+from pprint import pprint
 
 import yaml
 from loguru import logger
@@ -9,6 +10,7 @@ from loguru import logger
 from notetrail.character_scanner import CharacterScanner
 from notetrail.my_notion_client import notion_client
 from notetrail.notion_render import SuffixRender, NotionRender
+from notetrail.utils.exceptions import NotionYamlParserError
 from notetrail.utils.utils import BookInfo, markdown_render, generate_md5_from_text, RuntimeConfig
 
 
@@ -133,6 +135,10 @@ class HexoParser:
         return ret
 
 
+class Collector:
+    error_arts = []
+
+
 class HexoProcessor:
     def __init__(self, database_id=None, page_id=None):
         if (database_id or page_id) is None:
@@ -159,31 +165,32 @@ class HexoProcessor:
             property_dict = HexoParser().main(yaml_dict)
             return property_dict
         else:
-            raise Exception('notion: false')
+            logger.info("schema notion is false, skip this file.")
 
     def generate_properties(self, file_path):
         return self.pre_parse_hexo_file(file_path)
 
     def file_processor(self, file_path, page_id):
         logger.info('----------------> Processing file: {}'.format(file_path))
-        try:
-            properties = self.generate_properties(file_path)
+        properties = self.generate_properties(file_path)
+        if properties is None:
+            return
 
-            full_title = HexoParser.get_title(properties)
-            response = notion_client.search(query=full_title)
-            for result in response.get('results', []):
-                if result['properties']['\ufeffName']['title'][0]['plain_text']:
-                    if result['properties']['HashValue']['rich_text'][0]['plain_text'] == HexoParser.get_hash(properties):
-                        logger.info(f'blog {full_title} has been in the notion')
-                        return
-                    else:
-                        logger.warning(f'blog {full_title} need to be update, but this is a todo feature...')
-                        return
-        except Exception as _e:
-            if str(_e) == 'notion: false':
-                return
-            else:
-                raise _e
+        full_title = HexoParser.get_title(properties)
+        response = notion_client.search(query=full_title)
+
+        for result in response.get('results', []):
+            if result['properties']['\ufeffName']['title'][0]['plain_text'] == full_title:
+                if result['properties']['HashValue']['rich_text'][0]['plain_text'] == HexoParser.get_hash(
+                        properties):
+                    # 标题作为去重的键
+                    logger.info(f'blog {full_title} has been in the notion')
+                    return
+                else:
+                    logger.warning(f'blog {full_title} need to be updated')
+                    notion_client.delete_block(result['id'])
+        # ! 该段产生的异常不排除是代码出现 BUG, 所以不进行异常捕获, 一旦出现立刻结束程序, 避免浪费资源.
+
         try:
             children = self.render_file(file_path)
             response = notion_client.create_page(parent={"database_id": page_id}, properties=properties,
@@ -192,6 +199,11 @@ class HexoProcessor:
             sf.recursion_insert(response['id'])
         except Exception as _e:
             logger.exception(_e)
+            Collector.error_arts.append({
+                "title": full_title,
+                "exception": str(_e),
+                "file_path": file_path
+            })
             return
 
     def main(self):
@@ -225,3 +237,7 @@ if __name__ == '__main__':
     HexoParser.update_properties(database_id_)
     p = HexoProcessor(database_id=database_id_)
     p.main()
+
+    if Collector.error_arts:
+        logger.error("存在如下的错误:")
+        logger.error(Collector.error_arts)

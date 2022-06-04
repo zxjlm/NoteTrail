@@ -49,9 +49,14 @@ class MyNotionClient:
             self.client.blocks.delete(block_id=child['id'])
 
     @log
+    def delete_block(self, block_id: str):
+        return self.client.blocks.delete(block_id)
+
+    @log
     def search(self, query):
         return self.client.search(query=query)
 
 
-client_ = httpx.Client(proxies={'http://': 'http://127.0.0.1:7890', 'https://': 'http://127.0.0.1:7890'}, timeout=30)
+# client_ = httpx.Client(proxies={'http://': 'http://127.0.0.1:7890', 'https://': 'http://127.0.0.1:7890'}, timeout=30)
+client_ = httpx.Client(timeout=30)
 notion_client = MyNotionClient(client_)

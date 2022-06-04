@@ -13,7 +13,6 @@ class OSSHandler:
         sk = os.environ.get('ALI_OSS_SK')
         bucket_url = os.environ.get('ALI_BUCKET')
         if ak and sk and bucket_url:
-            'https://notion-oss-bucket.oss-cn-shanghai.aliyuncs.com/'
             self.BASIC_URL = bucket_url
             bucket_name, endpoint = self._split_url()
             auth = oss2.Auth(ak, sk)

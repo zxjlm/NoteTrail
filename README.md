@@ -51,6 +51,8 @@ convert markdown directory to notions.
 
 在 __./notetrail/hexo/hexo.py__ 中填入对应的参数.
 
+如果 md 文件的标头中存在 "notion: false" 的配置, 则将会跳过该文件. 对于不想被收录的, 或者因使用了非notion语法而无法被解析的, 可以使用该方法.
+
 ### 样例展示
 
 [博客地址](https://blog.harumonia.moe/)
