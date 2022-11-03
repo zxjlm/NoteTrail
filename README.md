@@ -86,3 +86,4 @@ convert markdown directory to notions.
 - [ ] block render class and validate block
 - [ ] catch failed block render and log
 - [ ] 使用命令行进行操作
+- [ ] * validate
