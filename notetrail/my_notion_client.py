@@ -7,6 +7,15 @@ from notion_client import Client
 from notetrail.utils.decorators import log
 
 
+class TimeLimiter:
+    """
+    notion api have rate limits.
+    https://developers.notion.com/reference/request-limits
+    """
+    RPS = 3
+
+
+
 class MyNotionClient:
     def __init__(self, client):
         # todo: httpx.ConnectError

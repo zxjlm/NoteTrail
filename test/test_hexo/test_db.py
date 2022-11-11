@@ -1,7 +1,7 @@
 import pytest
 
-from watson.utils.sqllite_handler import HexoLog
-from watson.utils.utils import generate_md5_from_text
+from notetrail.utils.sqllite_handler import HexoLog
+from notetrail.utils.utils import generate_md5_from_text
 
 
 @pytest.fixture(scope='function')

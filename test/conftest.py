@@ -2,7 +2,7 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from watson.utils.sqllite_handler import Base
+from notetrail.utils.sqllite_handler import Base
 
 
 @pytest.fixture(scope='function')
