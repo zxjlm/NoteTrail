@@ -87,3 +87,4 @@ convert markdown directory to notions.
 - [ ] catch failed block render and log
 - [ ] 使用命令行进行操作
 - [ ] * validate
+- [ ] use picgo to update images
