@@ -1,0 +1,7 @@
+http_proxy: 127.0.0.1:7890
+pic_config:
+  picgo_server: 127.0.0.1:36677
+  ali_oss:
+    ali_oss_sk: ""
+    ali_oss_ak: ""
+    ali_bucket: ""
