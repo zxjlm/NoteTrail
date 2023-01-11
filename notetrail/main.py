@@ -11,7 +11,8 @@
 import platform
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
 
-from watson.utils.utils import check_runtime, check_proxy_format
+from notetrail.utils.config_manager import ConfigManager
+from utils.utils import check_runtime, check_proxy_format
 
 __version__ = "v0.1"
 __module_name__ = "???"
@@ -56,18 +57,39 @@ def main():
         dest="proxy",
         help="Use proxy. Default is 127.0.0.1:7890.",
     )
+    parser.add_argument(
+        "--config",
+        default=False,
+        action="store_true",
+        dest="config",
+        help="Display configuration.",
+    )
+    parser.add_argument(
+        "--config_file",
+        "-f",
+        default="",
+        # const="127.0.0.1:7890",
+        dest="config_file",
+        help="Use specific config file",
+    )
 
     args = parser.parse_args()
 
-    if not check_runtime():
-        print("Please set environment variable")
-        exit(1)
+    # if not check_runtime():
+    #     print("Please set environment variable")
+    #     exit(1)
+
+    ConfigManager.update(args.config_file)
+
+    if args.config:
+        ConfigManager.display_config()
+        exit(0)
 
     if args.proxy:
         if not check_proxy_format(args.proxy):
             print(f"Invalid proxy format: {args.proxy}")
             exit(1)
-        from watson import my_notion_client
+        from notetrail import my_notion_client
         import httpx
         client_ = httpx.Client(proxies={'http://': f'http://{args.proxy}', 'https://': f'http://{args.proxy}'},
                                timeout=30)
