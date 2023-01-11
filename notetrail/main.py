@@ -12,7 +12,7 @@ import platform
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
 
 from notetrail.utils.config_manager import ConfigManager
-from utils.utils import check_runtime, check_proxy_format
+from utils.utils import check_proxy_format
 
 __version__ = "v0.1"
 __module_name__ = "???"

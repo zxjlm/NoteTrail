@@ -2,7 +2,6 @@ import io
 import json
 import re
 from datetime import datetime
-from pprint import pprint
 
 import yaml
 from loguru import logger
@@ -10,7 +9,6 @@ from loguru import logger
 from notetrail.character_scanner import CharacterScanner
 from notetrail.my_notion_client import notion_client
 from notetrail.notion_render import SuffixRender, NotionRender
-from notetrail.utils.exceptions import NotionYamlParserError
 from notetrail.utils.utils import BookInfo, markdown_render, generate_md5_from_text, RuntimeConfig
 
 

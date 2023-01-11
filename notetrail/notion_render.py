@@ -15,7 +15,7 @@ from mistletoe.span_token import HTMLSpan
 from mistletoe.base_renderer import BaseRenderer
 
 from notetrail.my_notion_client import notion_client
-from notetrail.utils.oss_handler import oss_handler
+from utils.image_processors import image_processor
 from notetrail.utils.utils import markdown_render, erase_prefix_string, BookInfo, long_content_split_patch, \
     validate_language, normal_language_map
 
@@ -224,10 +224,10 @@ class NotionRender(BaseRenderer):
                 img_path = os.path.join(os.path.dirname(BookInfo.CURRENT_FILE_PATH), token.src)
                 img_path = pathlib.Path(img_path).__str__()
             storage_path = os.path.join(BookInfo.BOOK_NAME, erase_prefix_string(img_path, BookInfo.BOOK_PATH))
-            if oss_handler.bucket is None:
+            if image_processor.bucket is None:
                 url = storage_path
             else:
-                url = oss_handler.upload_pic(img_path, storage_path)
+                url = image_processor.upload_pic(img_path, storage_path)
         block_template = {
             "type": "image",
             "image": {

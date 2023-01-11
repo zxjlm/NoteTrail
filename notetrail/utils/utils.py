@@ -40,6 +40,7 @@ def normal_language_map(language: str):
     }
     return mapping.get(language, language)
 
+
 def validate_language(language: str) -> bool:
     languages = ["abap", "arduino", "bash", "basic", "c", "clojure", "coffeescript", "c++", "c#", "css", "dart", "diff",
                  "docker", "elixir", "elm", "erlang", "flow", "fortran", "f#", "gherkin", "glsl", "go", "graphql",
@@ -84,18 +85,18 @@ def long_content_split_patch(content, max_length=2000):
     return [content[foo:foo + max_length] for foo in range(0, len(content), max_length)]
 
 
-def check_runtime():
-    """
-    检查是否满足运行条件
-    :return:
-    """
-    auth_token = os.environ.get("NOTION_TOKEN")
-
-    # check oss config
-    ak = os.environ.get("ALI_OSS_AK")
-    sk = os.environ.get("ALI_OSS_SK")
-
-    return auth_token and ak and sk
+# def check_runtime():
+#     """
+#     检查是否满足运行条件
+#     :return:
+#     """
+#     auth_token = os.environ.get("NOTION_TOKEN")
+#
+#     # check oss config.yaml
+#     ak = os.environ.get("ALI_OSS_AK")
+#     sk = os.environ.get("ALI_OSS_SK")
+#
+#     return auth_token and ak and sk
 
 
 def check_proxy_format(proxy):

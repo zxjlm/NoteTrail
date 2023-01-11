@@ -4,14 +4,18 @@ import re
 import oss2
 from loguru import logger
 
+from utils.config_manager import config_manager
+from utils.image_processors import BaseImageUploader
 
-class OSSHandler:
+
+class AliOSSHandler(BaseImageUploader):
     BASIC_URL = ''
 
     def __init__(self):
-        ak = os.environ.get('ALI_OSS_AK')
-        sk = os.environ.get('ALI_OSS_SK')
-        bucket_url = os.environ.get('ALI_BUCKET')
+        super().__init__()
+        ak = config_manager.config.pic_config.ali_oss["ali_oss_ak"]
+        sk = config_manager.config.pic_config.ali_oss["ali_oss_sk"]
+        bucket_url = config_manager.config.pic_config.ali_oss['ali_bucket']
         if ak and sk and bucket_url:
             self.BASIC_URL = bucket_url
             bucket_name, endpoint = self._split_url()
@@ -57,4 +61,4 @@ class OSSHandler:
         return self.BASIC_URL + filename
 
 
-oss_handler = OSSHandler()
+oss_handler = AliOSSHandler()
