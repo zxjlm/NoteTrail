@@ -9,24 +9,24 @@
 @desc:
 """
 from functools import cached_property
+from pathlib import Path
 
 import attrs
 from loguru import logger
-from pathlib import Path
-
-from yaml import load, Loader, Dumper
-
-from notetrail.utils.utils import Bcolors
 from rich import print
+from yaml import Dumper, Loader, load
+
+from notetrail.utils.utils import Bcolors, check_proxy_format
 
 ALIOSS_REQUIRED_FIELDS = ["ali_oss_sk", "ali_oss_ak", "ali_bucket"]
 
 
 @attrs.define
 class PicConfig:
-    picgo_server: str = attrs.field(default="")
-    ali_oss: dict = attrs.field(default={}, converter=lambda x: {} if all(
-        not x.get(foo) for foo in ALIOSS_REQUIRED_FIELDS) else x)
+    picgo_server: str = attrs.field(default="", validator=check_proxy_format)
+    ali_oss: dict = attrs.field(
+        default={}, converter=lambda x: {} if all(not x.get(foo) for foo in ALIOSS_REQUIRED_FIELDS) else x
+    )
 
     PRIORITY = ["picgo_server", "ali_oss"]
 

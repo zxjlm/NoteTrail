@@ -11,8 +11,9 @@
 import platform
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
 
-from notetrail.utils.config_manager import ConfigManager
 from utils.utils import check_proxy_format
+
+from notetrail.utils.config_manager import ConfigManager
 
 __version__ = "v0.1"
 __module_name__ = "???"
@@ -20,14 +21,11 @@ __module_name__ = "???"
 
 def main():
     """
-        Just main
-        Returns:
-        """
+    Just main
+    Returns:
+    """
 
-    version_string = (
-        f"%(prog)s {__version__} \n "
-        f"Python:  {platform.python_version()} \n"
-    )
+    version_string = f"%(prog)s {__version__} \n " f"Python:  {platform.python_version()} \n"
 
     parser = ArgumentParser(
         formatter_class=RawDescriptionHelpFormatter,
@@ -89,12 +87,15 @@ def main():
         if not check_proxy_format(args.proxy):
             print(f"Invalid proxy format: {args.proxy}")
             exit(1)
-        from notetrail import my_notion_client
         import httpx
-        client_ = httpx.Client(proxies={'http://': f'http://{args.proxy}', 'https://': f'http://{args.proxy}'},
-                               timeout=30)
+
+        from notetrail import my_notion_client
+
+        client_ = httpx.Client(
+            proxies={"http://": f"http://{args.proxy}", "https://": f"http://{args.proxy}"}, timeout=30
+        )
         my_notion_client.notion_client = my_notion_client.MyNotionClient(client_)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

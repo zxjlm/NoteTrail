@@ -19,12 +19,12 @@ LOGGING_FN = logger
 
 
 def log(
-        func: Callable = None,
-        log_time: bool = True,
-        log_args: bool = True,
-        log_error: bool = True,
-        log_file: str = None,
-        logging_fn: Callable = None,
+    func: Callable = None,
+    log_time: bool = True,
+    log_args: bool = True,
+    log_error: bool = True,
+    log_file: str = None,
+    logging_fn: Callable = None,
 ) -> Callable:
     """
     Tracks function time taken, arguments and errors
@@ -82,9 +82,7 @@ def log(
             raise e
 
         finally:
-            log_string = (
-                f"{func.__name__} {' '.join([s for s in optional_strings if s])}"
-            )
+            log_string = f"{func.__name__} {' '.join([s for s in optional_strings if s])}"
             logging_fn.info(log_string)
 
             if log_file is not None:

@@ -13,13 +13,13 @@ class MyNotionClient:
         self.client = Client(auth=os.environ["NOTION_TOKEN"], client=client)
 
     def create_page(self, *args, **kwargs):
-        properties = kwargs.get('properties', 'empty')
-        parent = kwargs.get('parent')
+        properties = kwargs.get("properties", "empty")
+        parent = kwargs.get("parent")
         logger.debug("Creating page, properties: {}, parent: {}".format(properties, parent))
         return self.client.pages.create(*args, **kwargs)
 
     def update_page(self, *args, **kwargs):
-        properties = kwargs.get('properties', 'empty')
+        properties = kwargs.get("properties", "empty")
         logger.debug("Creating page, properties: {}".format(properties))
         return self.client.pages.create(*args, **kwargs)
 
@@ -43,10 +43,10 @@ class MyNotionClient:
         logger.debug("Deleting all children, block_id: {}".format(block_id))
         if block_id and children is None:
             response = self.client.blocks.children.list(block_id=block_id)
-            children = response['result']
+            children = response["result"]
 
         for child in children:
-            self.client.blocks.delete(block_id=child['id'])
+            self.client.blocks.delete(block_id=child["id"])
 
     @log
     def delete_block(self, block_id: str):

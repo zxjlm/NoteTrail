@@ -8,7 +8,11 @@
 @time: 2023/1/11 09:51
 @desc:
 """
-from notetrail.utils.config_manager import config_manager, PicConfig
+from notetrail.utils.config_manager import PicConfig, config_manager
+
+
+class ImageUploadException(Exception):
+    ...
 
 
 class BaseImageUploader:

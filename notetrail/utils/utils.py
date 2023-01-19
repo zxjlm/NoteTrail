@@ -1,12 +1,12 @@
+import hashlib
 import os
 import re
-import hashlib
 
 from mistletoe import Document
 
 
 class RuntimeConfig:
-    database_id = '5dfca79037874290b22dec916bdc9f07'  # 数据库id
+    database_id = "5dfca79037874290b22dec916bdc9f07"  # 数据库id
 
 
 class BookInfo:
@@ -17,38 +17,105 @@ class BookInfo:
 
 
 class Bcolors:
-    HEADER = '\033[95m'
-    OKBLUE = '\033[94m'
-    OKCYAN = '\033[96m'
-    OKGREEN = '\033[92m'
-    WARNING = '\033[93m'
-    FAIL = '\033[91m'
-    ENDC = '\033[0m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
+    HEADER = "\033[95m"
+    OKBLUE = "\033[94m"
+    OKCYAN = "\033[96m"
+    OKGREEN = "\033[92m"
+    WARNING = "\033[93m"
+    FAIL = "\033[91m"
+    ENDC = "\033[0m"
+    BOLD = "\033[1m"
+    UNDERLINE = "\033[4m"
 
 
 def normal_language_map(language: str):
     mapping = {
-        'js': 'javascript',
-        'cpp': 'c++',
-        'py': 'python',
-        'text': 'plain text',
-        'plain_text': 'plain text',
-        'sh': 'shell',
-        '': 'plain text'
+        "js": "javascript",
+        "cpp": "c++",
+        "py": "python",
+        "text": "plain text",
+        "plain_text": "plain text",
+        "sh": "shell",
+        "": "plain text",
     }
     return mapping.get(language, language)
 
 
 def validate_language(language: str) -> bool:
-    languages = ["abap", "arduino", "bash", "basic", "c", "clojure", "coffeescript", "c++", "c#", "css", "dart", "diff",
-                 "docker", "elixir", "elm", "erlang", "flow", "fortran", "f#", "gherkin", "glsl", "go", "graphql",
-                 "groovy", "haskell", "html", "java", "javascript", "json", "julia", "kotlin", "latex", "less", "lisp",
-                 "livescript", "lua", "makefile", "markdown", "markup", "matlab", "mermaid", "nix", "objective-c",
-                 "ocaml", "pascal", "perl", "php", "plain text", "powershell", "prolog", "protobuf", "python", "r",
-                 "reason", "ruby", "rust", "sass", "scala", "scheme", "scss", "shell", "sql", "swift", "typescript",
-                 "vb.net", "verilog", "vhdl", "visual basic", "webassembly", "xml", "yaml", "java/c/c++/c#"]
+    languages = [
+        "abap",
+        "arduino",
+        "bash",
+        "basic",
+        "c",
+        "clojure",
+        "coffeescript",
+        "c++",
+        "c#",
+        "css",
+        "dart",
+        "diff",
+        "docker",
+        "elixir",
+        "elm",
+        "erlang",
+        "flow",
+        "fortran",
+        "f#",
+        "gherkin",
+        "glsl",
+        "go",
+        "graphql",
+        "groovy",
+        "haskell",
+        "html",
+        "java",
+        "javascript",
+        "json",
+        "julia",
+        "kotlin",
+        "latex",
+        "less",
+        "lisp",
+        "livescript",
+        "lua",
+        "makefile",
+        "markdown",
+        "markup",
+        "matlab",
+        "mermaid",
+        "nix",
+        "objective-c",
+        "ocaml",
+        "pascal",
+        "perl",
+        "php",
+        "plain text",
+        "powershell",
+        "prolog",
+        "protobuf",
+        "python",
+        "r",
+        "reason",
+        "ruby",
+        "rust",
+        "sass",
+        "scala",
+        "scheme",
+        "scss",
+        "shell",
+        "sql",
+        "swift",
+        "typescript",
+        "vb.net",
+        "verilog",
+        "vhdl",
+        "visual basic",
+        "webassembly",
+        "xml",
+        "yaml",
+        "java/c/c++/c#",
+    ]
     if language in languages:
         return True
     return False
@@ -82,7 +149,7 @@ def long_content_split_patch(content, max_length=2000):
     :param max_length:
     :return:
     """
-    return [content[foo:foo + max_length] for foo in range(0, len(content), max_length)]
+    return [content[foo : foo + max_length] for foo in range(0, len(content), max_length)]
 
 
 # def check_runtime():
@@ -99,13 +166,13 @@ def long_content_split_patch(content, max_length=2000):
 #     return auth_token and ak and sk
 
 
-def check_proxy_format(proxy):
-    if re.match(r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}:\d+', proxy):
+def check_proxy_format(*args):
+    if re.match(r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}:\d+", args[-1]):
         return True
     return False
 
 
-def generate_md5_from_text(text):
-    m = hashlib.md5()
+def generate_digest_from_text(text):
+    m = hashlib.sha256()
     m.update(text.encode("utf-8"))
     return m.hexdigest()

@@ -1,9 +1,7 @@
 import datetime
 
-from sqlalchemy import Column, create_engine
-from sqlalchemy import Integer
-from sqlalchemy import String, DateTime
-from sqlalchemy.orm import declarative_base, Session
+from sqlalchemy import Column, DateTime, Integer, String, create_engine
+from sqlalchemy.orm import Session, declarative_base
 
 Base = declarative_base()
 engine = create_engine("sqlite://", echo=True, future=True)
@@ -11,7 +9,7 @@ sql_session = Session(engine)
 
 
 class HexoLog(Base):
-    __tablename__ = 'hexo_log'
+    __tablename__ = "hexo_log"
 
     id = Column(Integer, primary_key=True)
     name = Column(String(80), nullable=False)

@@ -1,23 +1,29 @@
 import hashlib
 import os
 import pathlib
-import time
-from functools import reduce
-from urllib.parse import quote
-
 import re
 import sys
+import time
+from functools import reduce
 from itertools import chain
+from urllib.parse import quote
 
 from loguru import logger
+from mistletoe.base_renderer import BaseRenderer
 from mistletoe.block_token import HTMLBlock
 from mistletoe.span_token import HTMLSpan
-from mistletoe.base_renderer import BaseRenderer
+from utils.image_processors import image_processor
 
 from notetrail.my_notion_client import notion_client
-from utils.image_processors import image_processor
-from notetrail.utils.utils import markdown_render, erase_prefix_string, BookInfo, long_content_split_patch, \
-    validate_language, normal_language_map
+from notetrail.utils.utils import (
+    BookInfo,
+    erase_prefix_string,
+    generate_digest_from_text,
+    long_content_split_patch,
+    markdown_render,
+    normal_language_map,
+    validate_language,
+)
 
 if sys.version_info < (3, 4):
     from mistletoe import _html as html
@@ -46,32 +52,26 @@ class SuffixRender:
     def rebuild_children(self, token, children):
         result = []
         for child in children:
-            if child['type'] in ['numbered_list_item', 'bulleted_list_item']:
-                result.append(self.nr.render(token)['paragraph']['children'][0])
+            if child["type"] in ["numbered_list_item", "bulleted_list_item"]:
+                result.append(self.nr.render(token)["paragraph"]["children"][0])
             else:
-                result.append({
-                    'type': child['type'],
-                    child['type']: child[child['type']]
-                })
+                result.append({"type": child["type"], child["type"]: child[child["type"]]})
         return result
 
     def rebuild_family(self, digest_token_family: dict, children: list):
         cluster_id = list(digest_token_family.keys())[0]
         family_ = [self._object_digest_mapper[key] for key in digest_token_family.keys()]
-        check_cluster = reduce(lambda foo, bar: foo if foo['parent'] == bar['parent'] else 0, family_)
+        check_cluster = reduce(lambda foo, bar: foo if foo["parent"] == bar["parent"] else 0, family_)
         if not check_cluster:
-            logger.error(f'cluster_id: {cluster_id}')
+            logger.error(f"cluster_id: {cluster_id}")
             exit(1)
         new_children = []
         for child in children:
-            if child['type'] in ['numbered_list_item', 'bulleted_list_item']:
-                digest = child[child['type']]['text'][0]['plain_text'].replace("placeholder:", '')
-                new_children += self.nr.render(digest_token_family[digest])['paragraph']['children']
+            if child["type"] in ["numbered_list_item", "bulleted_list_item"]:
+                digest = child[child["type"]]["text"][0]["plain_text"].replace("placeholder:", "")
+                new_children += self.nr.render(digest_token_family[digest])["paragraph"]["children"]
             else:
-                new_children.append({
-                    'type': child['type'],
-                    child['type']: child[child['type']]
-                })
+                new_children.append({"type": child["type"], child["type"]: child[child["type"]]})
         return new_children
 
     def build_digest_index(self):
@@ -80,24 +80,20 @@ class SuffixRender:
                 self._digest_tokens.add(token)
 
     def update_object_digest_mapper(self, obj, parent, children):
-        if not obj[obj['type']]['text']:
+        if not obj[obj["type"]]["text"]:
             return
-        clean_text = obj[obj['type']]['text'][0]['plain_text'].replace("placeholder:", '')
+        clean_text = obj[obj["type"]]["text"][0]["plain_text"].replace("placeholder:", "")
         if clean_text in self._digest_tokens:
-            self._object_digest_mapper[clean_text] = {
-                'id': obj['id'],
-                'parent': parent,
-                'children': children
-            }
+            self._object_digest_mapper[clean_text] = {"id": obj["id"], "parent": parent, "children": children}
 
     def recursion_build_block_id_mapper(self, resp, parent=None):
-        for idx, obj in enumerate(resp['results']):
-            if obj['has_children']:
-                resp_ = notion_client.retrieve_block_children(obj['id'])
-                self.recursion_build_block_id_mapper(resp_, parent=obj['id'])
+        for idx, obj in enumerate(resp["results"]):
+            if obj["has_children"]:
+                resp_ = notion_client.retrieve_block_children(obj["id"])
+                self.recursion_build_block_id_mapper(resp_, parent=obj["id"])
             else:
-                if obj['type'] in ['numbered_list_item', 'bulleted_list_item']:
-                    self.update_object_digest_mapper(obj, parent, resp['results'])
+                if obj["type"] in ["numbered_list_item", "bulleted_list_item"]:
+                    self.update_object_digest_mapper(obj, parent, resp["results"])
 
     def recursion_insert(self, block_id):
 
@@ -113,11 +109,11 @@ class SuffixRender:
 
             obj = self._object_digest_mapper[cluster_digest]
 
-            children = self.rebuild_family(digest_token_family, children=obj['children'])
-            notion_client.delete_all_children(block_id=obj['parent'], children=obj['children'])
+            children = self.rebuild_family(digest_token_family, children=obj["children"])
+            notion_client.delete_all_children(block_id=obj["parent"], children=obj["children"])
             # children = self.rebuild_children(token, children=obj['children'])
-            resp_append_children = notion_client.append_block_children(block_id=obj['parent'], children=children)
-            block_id = obj['parent']
+            resp_append_children = notion_client.append_block_children(block_id=obj["parent"], children=children)
+            block_id = obj["parent"]
 
 
 class NotionRender(BaseRenderer):
@@ -139,9 +135,7 @@ class NotionRender(BaseRenderer):
         # html.entities.html5 includes entitydefs not ending with ';',
         # CommonMark seems to hate them, so...
         self._stdlib_charref = html._charref
-        _charref = re.compile(r'&(#[0-9]+;'
-                              r'|#[xX][0-9a-fA-F]+;'
-                              r'|[^\t\n\f <&#;]{1,32};)')
+        _charref = re.compile(r"&(#[0-9]+;" r"|#[xX][0-9a-fA-F]+;" r"|[^\t\n\f <&#;]{1,32};)")
         html._charref = _charref
 
     def __exit__(self, *args):
@@ -149,22 +143,21 @@ class NotionRender(BaseRenderer):
         html._charref = self._stdlib_charref
 
     def render_to_plain(self, token):
-        if hasattr(token, 'children'):
+        if hasattr(token, "children"):
             inner = [self.render_to_plain(child) for child in token.children]
-            return ''.join(inner)
+            return "".join(inner)
         return self.escape_html(token.content)
 
     def render_strong(self, token):
         rich_text_template = {
             "type": "text",
             "text": {
-                "content": ''.join(
-                    [child.content for child in token.children if child.__class__.__name__ == 'RawText']),
+                "content": "".join(
+                    [child.content for child in token.children if child.__class__.__name__ == "RawText"]
+                ),
                 "link": None,
             },
-            "annotations": {
-                "bold": True
-            },
+            "annotations": {"bold": True},
         }
         return rich_text_template
 
@@ -172,13 +165,12 @@ class NotionRender(BaseRenderer):
         rich_text_template = {
             "type": "text",
             "text": {
-                "content": ''.join(
-                    [child.content for child in token.children if child.__class__.__name__ == 'RawText']),
+                "content": "".join(
+                    [child.content for child in token.children if child.__class__.__name__ == "RawText"]
+                ),
                 "link": None,
             },
-            "annotations": {
-                "underline": True
-            },
+            "annotations": {"underline": True},
         }
         return rich_text_template
 
@@ -186,13 +178,12 @@ class NotionRender(BaseRenderer):
         rich_text_template = {
             "type": "text",
             "text": {
-                "content": ''.join(
-                    [child.content for child in token.children if child.__class__.__name__ == 'RawText']),
+                "content": "".join(
+                    [child.content for child in token.children if child.__class__.__name__ == "RawText"]
+                ),
                 "link": None,
             },
-            "annotations": {
-                "code": True
-            },
+            "annotations": {"code": True},
         }
         return rich_text_template
 
@@ -203,17 +194,13 @@ class NotionRender(BaseRenderer):
                 "content": token.children[0].content,
                 "link": None,
             },
-            "annotations": {
-                "strikethrough": True
-            },
+            "annotations": {"strikethrough": True},
         }
 
     def render_image(self, token):
         if self._suppress_ptag_stack.__len__() >= 2:
-            return {
-                'type': 'text', 'text': {'content': f'not render image: {token.src}', 'link': None}
-            }
-        if token.src.startswith('http'):
+            return {"type": "text", "text": {"content": f"not render image: {token.src}", "link": None}}
+        if token.src.startswith("http"):
             url = token.src
         else:
             if token.src.startswith(os.path.sep):
@@ -228,15 +215,7 @@ class NotionRender(BaseRenderer):
                 url = storage_path
             else:
                 url = image_processor.upload_pic(img_path, storage_path)
-        block_template = {
-            "type": "image",
-            "image": {
-                "type": "external",
-                "external": {
-                    "url": url
-                }
-            }
-        }
+        block_template = {"type": "image", "image": {"type": "external", "external": {"url": url}}}
         return block_template
 
     def render_link(self, token):
@@ -251,8 +230,9 @@ class NotionRender(BaseRenderer):
         rich_text_template = {
             "type": "text",
             "text": {
-                "content": ''.join(
-                    [child.content for child in token.children if child.__class__.__name__ == 'RawText']),
+                "content": "".join(
+                    [child.content for child in token.children if child.__class__.__name__ == "RawText"]
+                ),
                 "link": None,
             },
             "href": token.target,
@@ -264,31 +244,28 @@ class NotionRender(BaseRenderer):
             "type": "paragraph",
             "paragraph": {
                 "text": [],
-            }
+            },
         }
         if token.mailto:
-            target = 'mailto:{}'.format(token.target)
+            target = "mailto:{}".format(token.target)
         else:
             target = self.escape_url(token.target)
-        content = ''
+        content = ""
         for child in token.children:
-            if child.__class__.__name__ == 'RawText':
+            if child.__class__.__name__ == "RawText":
                 content = child.content
                 break
         text_template = {
             "type": "text",
             "text": {
                 "content": content,
-                "link": {
-                    'type': 'url',
-                    'url': target
-                },
-            }
+                "link": {"type": "url", "url": target},
+            },
         }
         return text_template
 
     def render_escape_sequence(self, token):
-        return {'type': 'text', 'text': {'content': token.children[0].content, 'link': None}}
+        return {"type": "text", "text": {"content": token.children[0].content, "link": None}}
 
     def render_raw_text(self, token):
         return {
@@ -296,23 +273,18 @@ class NotionRender(BaseRenderer):
             "text": {
                 "content": token.content,
                 "link": None,
-            }
+            },
         }
 
     @staticmethod
     def render_html_span(token):
-        logger.warning(f'html span token: {token.content}')
+        logger.warning(f"html span token: {token.content}")
         return
 
     def render_heading(self, token):
         inner = self.render_inner(token)
         head_leval = "heading_{}".format(token.level if token.level <= 3 else 3)
-        block_template = {
-            "type": head_leval,
-            head_leval: {
-                "text": inner
-            }
-        }
+        block_template = {"type": head_leval, head_leval: {"text": inner}}
         return block_template
 
     def render_quote(self, token):
@@ -324,55 +296,47 @@ class NotionRender(BaseRenderer):
             "type": "quote",
             "quote": {
                 "text": content,
-            }
+            },
         }
 
     def render_paragraph(self, token):
         if self._suppress_ptag_stack[-1]:
             return self.render_inner(token)
-        if token.children.__len__() == 1 and token.children[0].__class__.__name__ == 'Image':
+        if token.children.__len__() == 1 and token.children[0].__class__.__name__ == "Image":
             return self.render_inner(token)[0]
 
         block_template = {
             "type": "paragraph",
             "paragraph": {
                 "text": [],
-            }
+            },
         }
         # inner = [foo for foo in self.render_inner(token) if foo['text']['content']]
         inner = []
         children = []
         for foo in self.render_inner(token):
-            if 'text' not in foo:
-                if isinstance(foo, dict) and 'image' in foo:
+            if "text" not in foo:
+                if isinstance(foo, dict) and "image" in foo:
                     children.append(foo)
                 else:
-                    logger.warning('paragraph: {}'.format(foo))
-            elif foo['text']['content']:
+                    logger.warning("paragraph: {}".format(foo))
+            elif foo["text"]["content"]:
                 inner.append(foo)
 
-        block_template['paragraph']['text'] = inner
+        block_template["paragraph"]["text"] = inner
         if children:
-            block_template['paragraph']['children'] = children
+            block_template["paragraph"]["children"] = children
         return block_template
 
     def render_block_code(self, token):
         language = token.language
         language = normal_language_map(language)
         if not validate_language(language):
-            logger.warning('invalid language: {}'.format(language))
-            language = 'plain text'
+            logger.warning("invalid language: {}".format(language))
+            language = "plain text"
         code_template = {
             "type": "code",
-            "code": {
-                "text": [{
-                    "type": "text",
-                    "text": {
-                        "content": ""
-                    }
-                }],
-                "language": language
-            }
+            "code": {"text": [{"type": "text", "text": {"content": ""}}], "language": language},
         }
         code = token.children[0].content
         if len(code) <= 2000:
@@ -380,12 +344,7 @@ class NotionRender(BaseRenderer):
         else:
             logger.warning("code too long, will be split")
             content_list = long_content_split_patch(code)
-            code_template["code"]["text"] = [{
-                "type": "text",
-                "text": {
-                    "content": content
-                }
-            } for content in content_list]
+            code_template["code"]["text"] = [{"type": "text", "text": {"content": content}} for content in content_list]
         return code_template
 
     def render_list(self, token):
@@ -395,7 +354,7 @@ class NotionRender(BaseRenderer):
             "paragraph": {
                 "text": [],
                 # "children": []
-            }
+            },
         }
         self._suppress_ptag_stack.append(not token.loose)
 
@@ -405,19 +364,19 @@ class NotionRender(BaseRenderer):
             self._suppress_ptag_stack.pop()
             return
 
-        block_template[block_template['type']]['children'] = inner
+        block_template[block_template["type"]]["children"] = inner
         self._suppress_ptag_stack.pop()
         return block_template
 
     @staticmethod
     def select_list_template(token):
-        if hasattr(token, 'leader') and token.leader == '-':
+        if hasattr(token, "leader") and token.leader == "-":
             block_template = {
                 "type": "bulleted_list_item",
                 "bulleted_list_item": {
                     "text": [],
                     # "children": []
-                }
+                },
             }
         else:
             block_template = {
@@ -425,7 +384,7 @@ class NotionRender(BaseRenderer):
                 "numbered_list_item": {
                     "text": [],
                     # "children": []
-                }
+                },
             }
         return block_template
 
@@ -442,11 +401,12 @@ class NotionRender(BaseRenderer):
             if render_result:
                 inner.append(render_result)
             else:
-                digest = hashlib.md5(f"{time.time()}".encode('utf-8')).hexdigest()
+                digest = generate_digest_from_text(f"{time.time()}")
                 time.sleep(0.1)
                 block_template_ = self.select_list_template(child.children[0])
-                block_template_[block_template_['type']]['text'].append(
-                    {"type": "text", "text": {"content": 'placeholder:' + digest, "link": None}})
+                block_template_[block_template_["type"]]["text"].append(
+                    {"type": "text", "text": {"content": "placeholder:" + digest, "link": None}}
+                )
                 inner.append(block_template_)
                 tmp_family[digest] = child
 
@@ -454,18 +414,18 @@ class NotionRender(BaseRenderer):
             WatcherClass.DIGEST_TOKEN_FAMILY.append(tmp_family)
 
         if self._suppress_ptag_stack[-1]:
-            if token.children[0].__class__.__name__ == 'Paragraph':
-                block_template[block_template['type']]['children'] = inner[1:]
-                block_template[block_template['type']]['text'] = inner[0]
-            elif token.children[-1].__class__.__name__ == 'Paragraph':
-                block_template[block_template['type']]['children'] = inner[:-1]
-                block_template[block_template['type']]['text'] = inner[-1]
+            if token.children[0].__class__.__name__ == "Paragraph":
+                block_template[block_template["type"]]["children"] = inner[1:]
+                block_template[block_template["type"]]["text"] = inner[0]
+            elif token.children[-1].__class__.__name__ == "Paragraph":
+                block_template[block_template["type"]]["children"] = inner[:-1]
+                block_template[block_template["type"]]["text"] = inner[-1]
         else:
-            if token.children[0].__class__.__name__ == 'Paragraph':
-                block_template[block_template['type']]['children'] = inner[1:]
-                block_template[block_template['type']]['text'] = inner[0]['paragraph']['text']
+            if token.children[0].__class__.__name__ == "Paragraph":
+                block_template[block_template["type"]]["children"] = inner[1:]
+                block_template[block_template["type"]]["text"] = inner[0]["paragraph"]["text"]
             else:
-                block_template[block_template['type']]['children'] = inner
+                block_template[block_template["type"]]["children"] = inner
         # block_template[block_template['type']]['children'] = inner
         return block_template
 
@@ -480,26 +440,21 @@ class NotionRender(BaseRenderer):
                 "table_width": len(token.children[0].children),
                 "has_column_header": False,
                 "has_row_header": False,
-                "children": []
-            }
+                "children": [],
+            },
         }
         head_row = []
-        if hasattr(token, 'header'):
-            template['table']['has_column_header'] = True
+        if hasattr(token, "header"):
+            template["table"]["has_column_header"] = True
             head_row = self.render_table_row(token.header)
         body_inner = self.render_inner(token)
-        template['table']['children'] = [head_row] + body_inner
+        template["table"]["children"] = [head_row] + body_inner
         return template
 
     def render_table_row(self, token):
-        template = {
-            "type": "table_row",
-            "table_row": {
-                "cells": []
-            }
-        }
+        template = {"type": "table_row", "table_row": {"cells": []}}
         cells = [self.render_table_cell(child) for child in token.children]
-        template['table_row']['cells'] = cells
+        template["table_row"]["cells"] = cells
         return template
 
     def render_table_cell(self, token):
@@ -508,24 +463,15 @@ class NotionRender(BaseRenderer):
 
     @staticmethod
     def render_thematic_break(token):
-        return {
-            "type": "divider",
-            "divider": {}
-        }
+        return {"type": "divider", "divider": {}}
 
     @staticmethod
     def render_line_break(token):
-        return {
-            "type": "text",
-            "text": {
-                "content": "",
-                "link": None
-            }
-        }
+        return {"type": "text", "text": {"content": "", "link": None}}
 
     @staticmethod
     def render_html_block(token):
-        logger.warning(f'html block token: {token.content}')
+        logger.warning(f"html block token: {token.content}")
         return
 
     def render_document(self, token):
@@ -541,14 +487,14 @@ class NotionRender(BaseRenderer):
 
     @staticmethod
     def escape_html(raw):
-        return html.escape(html.unescape(raw)).replace('&#x27;', "'")
+        return html.escape(html.unescape(raw)).replace("&#x27;", "'")
 
     @staticmethod
     def escape_url(raw):
         """
         Escape urls to prevent code injection craziness. (Hopefully.)
         """
-        return html.escape(quote(html.unescape(raw), safe='/#:()*?=%@+,&;'))
+        return html.escape(quote(html.unescape(raw), safe="/#:()*?=%@+,&;"))
 
     def render_inner(self, token):
         # if token.__class__.__name__ == 'List':
@@ -571,8 +517,8 @@ class NotionRender(BaseRenderer):
 if __name__ == "__main__":
     # body.children[49].paragraph.children[0].bulleted_list_item.children[1].paragraph.children
     BookInfo.BOOK_PATH = "/Users/zhangxinjian/Projects/docs/tmp"
-    BookInfo.BOOK_NAME = 'ddd'
-    md_path_ = '/Users/zhangxinjian/Projects/docs/tmp/tcp-bbr.md'
+    BookInfo.BOOK_NAME = "ddd"
+    md_path_ = "/Users/zhangxinjian/Projects/docs/tmp/tcp-bbr.md"
     BookInfo.CURRENT_FILE_PATH = md_path_
     with open(md_path_) as f:
         node = markdown_render(f.readlines(), NotionRender)

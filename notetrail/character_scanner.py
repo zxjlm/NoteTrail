@@ -37,21 +37,17 @@ class CharacterScanner:
                 "path": ''
             }
         """
-        path_list = glob.glob(f'{current_path}/*')
+        path_list = glob.glob(f"{current_path}/*")
 
-        md_files = {
-            'blocks': [],
-            'children': [],
-            'path': current_path
-        }
+        md_files = {"blocks": [], "children": [], "path": current_path}
 
         for path_ in path_list:
             if os.path.isdir(path_):
                 scan_res = self.recursion_scanner(path_)
-                if scan_res['children'] or scan_res['blocks']:
-                    md_files['children'].append(scan_res)
-            elif path_.lower().endswith('.md'):
-                md_files['blocks'].append(path_)
+                if scan_res["children"] or scan_res["blocks"]:
+                    md_files["children"].append(scan_res)
+            elif path_.lower().endswith(".md"):
+                md_files["blocks"].append(path_)
             else:
                 continue
 
@@ -65,16 +61,16 @@ class CharacterScanner:
         :param current_path:
         :return:
         """
-        path_list = glob.glob(f'{current_path}/*')
+        path_list = glob.glob(f"{current_path}/*")
 
         for path_ in path_list:
             if os.path.isdir(path_):
                 CharacterScanner.plain_recursion_scanner(path_, depth + 1)
-                print(Bcolors.OKBLUE + '-' * depth, os.path.basename(path_) + Bcolors.ENDC)
-            elif path_.endswith('.md'):
-                print(Bcolors.OKGREEN + '-' * depth, os.path.basename(path_) + Bcolors.ENDC)
+                print(Bcolors.OKBLUE + "-" * depth, os.path.basename(path_) + Bcolors.ENDC)
+            elif path_.endswith(".md"):
+                print(Bcolors.OKGREEN + "-" * depth, os.path.basename(path_) + Bcolors.ENDC)
             else:
-                print(Bcolors.WARNING + '-' * depth, os.path.basename(path_) + Bcolors.ENDC)
+                print(Bcolors.WARNING + "-" * depth, os.path.basename(path_) + Bcolors.ENDC)
 
     def scanner(self) -> dict:
         """
@@ -85,13 +81,13 @@ class CharacterScanner:
 
     @staticmethod
     def check_path(path_dict):
-        if path_dict.get('blocks') or path_dict.get('children'):
+        if path_dict.get("blocks") or path_dict.get("children"):
             return True
-        raise Exception('there is no valid file or dir in root path.')
+        raise Exception("there is no valid file or dir in root path.")
 
 
-if __name__ == '__main__':
-    BookInfo.BOOK_PATH = '/home/harumonia/projects/docs/w3-goto-world'
+if __name__ == "__main__":
+    BookInfo.BOOK_PATH = "/home/harumonia/projects/docs/w3-goto-world"
     p = CharacterScanner()
     # pprint.pprint(p.scanner())
-    p.plain_recursion_scanner('/home/harumonia/projects/docs/w3-goto-world')
+    p.plain_recursion_scanner("/home/harumonia/projects/docs/w3-goto-world")

@@ -9,10 +9,10 @@
 @desc:
 """
 import re
+from functools import wraps
 
 import mistletoe
 from bs4 import BeautifulSoup, Tag
-from functools import wraps
 from loguru import logger
 
 
@@ -21,9 +21,9 @@ def list_block_wrap(func):
     def wrapper(cls, node_arg):
         ret, cv_list = [], []
         for children in node_arg.contents:
-            if children == '\n' or children.name is None:
+            if children == "\n" or children.name is None:
                 continue
-            convert_result = getattr(cls, f'convert_{children.name}_elem')(children)
+            convert_result = getattr(cls, f"convert_{children.name}_elem")(children)
             cv_list.append(convert_result)
         if cv_list:
             ret.append(func(cls, cv_list))
@@ -46,161 +46,131 @@ class BlockRender:
         :param p_node:
         :return:
         """
-        if p_node.parent.name == 'li':
-            return {
-                "content": p_node.text,
-                "link": None
-            }
+        if p_node.parent.name == "li":
+            return {"content": p_node.text, "link": None}
         # contents_type = [content for content in p_node.contents if not isinstance(content, NavigableString)]
         else:
             return {
                 "type": "paragraph",
-                "paragraph": {
-                    "text": cls.recursion_p_node(p_node)
-                },
+                "paragraph": {"text": cls.recursion_p_node(p_node)},
             }
 
     @classmethod
     def recursion_p_node(cls, p_node: Tag):
         ret = []
         for content in p_node.contents:
-            ret.append({
-                "type": "text",
-                "text": {
-                    "content": content.text,
-                    "link": {
-                        "type": "url",
-                        "url": content.attrs.get('href')
-                    } if content.name == 'a' else None
+            ret.append(
+                {
+                    "type": "text",
+                    "text": {
+                        "content": content.text,
+                        "link": {"type": "url", "url": content.attrs.get("href")} if content.name == "a" else None,
+                    },
                 }
-            })
+            )
         return ret
 
     @classmethod
     def convert_hr_elem(cls, hr_node):
-        return {
-            "type": "divider",
-            "divider": {}
-        }
+        return {"type": "divider", "divider": {}}
 
     @classmethod
     def convert_a_elem(cls, a_node: Tag):
-        return {
-            "content": a_node.text,
-            "link": {
-                "url": a_node.attrs.get('href')
-            }
-        }
+        return {"content": a_node.text, "link": {"url": a_node.attrs.get("href")}}
 
     @classmethod
     def convert_li_elem(cls, li_node: Tag):
-        return {
-            "type": "text",
-            "text": {
-                "content": li_node.text,
-                "link": None
-            }
-        }
+        return {"type": "text", "text": {"content": li_node.text, "link": None}}
 
     @classmethod
     @list_block_wrap
     def convert_ul_elem(cls, convert_result: str):
-        return {
-            "type": "bulleted_list_item",
-            "bulleted_list_item": {
-                "text": convert_result
-            }
-        }
+        return {"type": "bulleted_list_item", "bulleted_list_item": {"text": convert_result}}
 
     @classmethod
     @list_block_wrap
     def convert_ol_elem(cls, convert_result: str):
-        return {
-            "type": "numbered_list_item",
-            "numbered_list_item": {
-                "text": convert_result
-            }
-        }
+        return {"type": "numbered_list_item", "numbered_list_item": {"text": convert_result}}
 
     @classmethod
     def convert_pre_elem(cls, pre_node):
         language_list = [
-            'abap',
-            'arduino',
-            'bash',
-            'basic',
-            'c',
-            'clojure',
-            'coffeescript',
-            'c++',
-            'c#',
-            'css',
-            'dart',
-            'diff',
-            'docker',
-            'elixir',
-            'elm',
-            'erlang',
-            'flow',
-            'fortran',
-            'f#',
-            'gherkin',
-            'glsl',
-            'go',
-            'graphql',
-            'groovy',
-            'haskell',
-            'html',
-            'java',
-            'javascript',
-            'json',
-            'julia',
-            'kotlin',
-            'latex',
-            'less',
-            'lisp',
-            'livescript',
-            'lua',
-            'makefile',
-            'markdown',
-            'markup',
-            'matlab',
-            'mermaid',
-            'nix',
-            'objective-c',
-            'ocaml',
-            'pascal',
-            'perl',
-            'php',
-            'plain text',
-            'powershell',
-            'prolog',
-            'protobuf',
-            'python',
-            'r',
-            'reason',
-            'ruby',
-            'rust',
-            'sass',
-            'scala',
-            'scheme',
-            'scss',
-            'shell',
-            'sql',
-            'swift',
-            'typescript',
-            'vb.net',
-            'verilog',
-            'vhdl',
-            'visual basic',
-            'webassembly',
-            'xml',
-            'yaml'
+            "abap",
+            "arduino",
+            "bash",
+            "basic",
+            "c",
+            "clojure",
+            "coffeescript",
+            "c++",
+            "c#",
+            "css",
+            "dart",
+            "diff",
+            "docker",
+            "elixir",
+            "elm",
+            "erlang",
+            "flow",
+            "fortran",
+            "f#",
+            "gherkin",
+            "glsl",
+            "go",
+            "graphql",
+            "groovy",
+            "haskell",
+            "html",
+            "java",
+            "javascript",
+            "json",
+            "julia",
+            "kotlin",
+            "latex",
+            "less",
+            "lisp",
+            "livescript",
+            "lua",
+            "makefile",
+            "markdown",
+            "markup",
+            "matlab",
+            "mermaid",
+            "nix",
+            "objective-c",
+            "ocaml",
+            "pascal",
+            "perl",
+            "php",
+            "plain text",
+            "powershell",
+            "prolog",
+            "protobuf",
+            "python",
+            "r",
+            "reason",
+            "ruby",
+            "rust",
+            "sass",
+            "scala",
+            "scheme",
+            "scss",
+            "shell",
+            "sql",
+            "swift",
+            "typescript",
+            "vb.net",
+            "verilog",
+            "vhdl",
+            "visual basic",
+            "webassembly",
+            "xml",
+            "yaml",
         ]
         code_node = pre_node.code
-        language = code_node.attrs.get('class', ['language-text'])[0].replace('language-', '')
-        if language == 'text':
-            language = 'plain text'
+        language = code_node.attrs.get("class", ["language-text"])[0].replace("language-", "")
+        if language == "text":
+            language = "plain text"
 
         # 判断代码块语言是否支持
         if language not in language_list:
@@ -209,38 +179,22 @@ class BlockRender:
                     language = lan
                     break
             else:
-                raise Exception('language can`t support.')
+                raise Exception("language can`t support.")
 
         return {
             "type": "code",
-            "code": {
-                "text": [{
-                    "type": "text",
-                    "text": {
-                        "content": code_node.text
-                    }
-                }],
-                "language": language
-            }
+            "code": {"text": [{"type": "text", "text": {"content": code_node.text}}], "language": language},
         }
 
     @classmethod
     def convert_head_elem(cls, head_node):
-        level = int(re.search(r'h(\d)', head_node.name).group(1))
+        level = int(re.search(r"h(\d)", head_node.name).group(1))
         if level > 3:
-            logger.warning(f'head level can`t over than 3, now is {level}')
+            logger.warning(f"head level can`t over than 3, now is {level}")
             return
         return {
             "type": f"heading_{level}",
-            f"heading_{level}": {
-                "text": [{
-                    "type": "text",
-                    "text": {
-                        "content": head_node.text,
-                        "link": None
-                    }
-                }]
-            }
+            f"heading_{level}": {"text": [{"type": "text", "text": {"content": head_node.text, "link": None}}]},
         }
 
     @classmethod
@@ -248,13 +202,15 @@ class BlockRender:
         return {
             "type": "quote",
             "quote": {
-                "text": [{
-                    "type": "text",
-                    "text": {
-                        "content": quote_node.text,
-                    },
-                }],
-            }
+                "text": [
+                    {
+                        "type": "text",
+                        "text": {
+                            "content": quote_node.text,
+                        },
+                    }
+                ],
+            },
         }
 
 
@@ -273,12 +229,12 @@ class MarkdownRender:
 
         ret = []
         for children in soup.contents:
-            if children == '\n' or children is None:
+            if children == "\n" or children is None:
                 continue
-            if re.match(r'h\d', children.name):
+            if re.match(r"h\d", children.name):
                 convert_result = self.block_render.convert_head_elem(children)
             else:
-                convert_result = getattr(self.block_render, f'convert_{children.name}_elem')(children)
+                convert_result = getattr(self.block_render, f"convert_{children.name}_elem")(children)
             if convert_result:
                 if isinstance(convert_result, list):
                     ret += convert_result
@@ -287,8 +243,8 @@ class MarkdownRender:
         return ret
 
 
-if __name__ == '__main__':
-    path = '/Users/zhangxinjian/Projects/d2l/README.md'
+if __name__ == "__main__":
+    path = "/Users/zhangxinjian/Projects/d2l/README.md"
     p = MarkdownRender()
     ress = p.process(path)
 
